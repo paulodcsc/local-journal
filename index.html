@@ -113,6 +113,24 @@
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
   .btn.danger { color: var(--bad); }
 
+  /* Voice */
+  .mic {
+    display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 56px;
+    border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 17px; margin-bottom: 12px;
+  }
+  .mic svg { width: 22px; height: 22px; }
+  .voice { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; }
+  .voice[hidden] { display: none; }
+  .voice .status { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 8px; }
+  .voice .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); animation: pulse 1s infinite; }
+  .voice .pulse.off { background: var(--line); animation: none; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .voice .hint { font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+  .voice .actions { display: flex; gap: 8px; }
+  .voice .actions .btn { margin: 0; flex: 1; padding: 11px; }
+  .voice ul { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
+  .q.flash { box-shadow: 0 0 0 2px var(--good); transition: box-shadow .4s; }
+
   .toast {
     position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
     background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 20px; font-size: 14px;
@@ -132,6 +150,20 @@
     </div>
     <div class="week" id="week"></div>
     <div class="progress"><i id="bar"></i></div>
+    <button class="mic" id="micBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      Say it instead
+    </button>
+    <div class="voice" id="voice" hidden>
+      <div class="status"><i class="pulse off" id="pulse"></i><span id="vStatus">Listening…</span></div>
+      <textarea id="vText" placeholder="e.g. “Slept 7 hours, rested okay, stress high, anxiety low, instagram 2 hours, ate well, no alcohol”"></textarea>
+      <div class="hint" id="vHint">Say any of the questions in any order, e.g. <i>“slept 7 hours, stress high, mood good, no alcohol”</i>. Say <i>“note”</i> and then anything to save it as your note.</div>
+      <div class="actions">
+        <button class="btn primary" id="vDone">Done</button>
+        <button class="btn" id="vClose">Close</button>
+      </div>
+      <div id="vResult"></div>
+    </div>
     <div id="form"></div>
     <p class="muted" style="text-align:center">Everything saves automatically.</p>
   </section>
@@ -170,6 +202,7 @@
 </nav>
 <div class="toast" id="toast"></div>
 
+<script src="voice.js"></script>
 <script>
 // ---------- Question definitions ----------
 // good: which end of the scale is healthy ('high' | 'low'). Used for colors and insights.
@@ -266,7 +299,7 @@ function renderForm() {
   const f = $('form'); f.innerHTML = '';
   const e = entry();
   for (const q of visible()) {
-    const card = document.createElement('div'); card.className = 'q';
+    const card = document.createElement('div'); card.className = 'q'; card.dataset.id = q.id;
     const lab = document.createElement('div'); lab.className = 'label';
     lab.innerHTML = `<span>${q.label}</span>`;
     card.appendChild(lab);
@@ -319,6 +352,100 @@ function refresh() {
 function go(day) { if (day > todayIso()) return; current = day; refresh(); }
 $('prev').onclick = () => go(addDays(current, -1));
 $('next').onclick = () => go(addDays(current, 1));
+
+// ---------- Voice check-in ----------
+// Speech → text uses the browser's built-in recognizer (Web Speech API). If it isn't
+// available (or blocked, e.g. some iPhone home-screen apps), the keyboard's own mic
+// button can dictate into the same box. Either way the text is parsed on-device by voice.js.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, undoSnapshot = null;
+
+function display(q, v) {
+  if (q.type === 'hours') return v + 'h';
+  if (q.type === 'note') return `“${v}”`;
+  if (q.type === 'yesno') return v ? 'Yes' : 'No';
+  return q.opts[v];
+}
+function setListening(on, msg) {
+  listening = on;
+  $('pulse').classList.toggle('off', !on);
+  $('vStatus').textContent = msg || (on ? 'Listening… tap Done when finished' : 'Check the text, then tap Fill in');
+  $('vDone').textContent = on ? 'Done' : 'Fill in';
+}
+function keyboardFallback(reason) {
+  setListening(false, reason);
+  $('vHint').innerHTML = 'Tap the box above, then tap the <b>🎤 microphone on your keyboard</b> and speak. Tap <b>Fill in</b> when done.';
+  $('vText').focus();
+}
+function startListening() {
+  $('voice').hidden = false; $('vResult').innerHTML = '';
+  if (!SR) return keyboardFallback('Type or dictate');
+  rec = new SR();
+  rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+  const base = $('vText').value ? $('vText').value.trim() + ' ' : '';
+  let finals = [];
+  rec.onresult = ev => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const t = ev.results[i][0].transcript.trim();
+      if (ev.results[i].isFinal) {
+        const last = finals[finals.length - 1];
+        // Some Android versions resend the whole phrase so far; replace instead of duplicating.
+        if (last && t.toLowerCase().startsWith(last.toLowerCase())) finals[finals.length - 1] = t; else finals.push(t);
+      } else interim += t + ' ';
+    }
+    $('vText').value = base + [...finals, interim.trim()].filter(Boolean).join(', ');
+  };
+  rec.onerror = ev => {
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return;
+    rec = null;
+    keyboardFallback(ev.error === 'not-allowed' ? 'Microphone permission was denied'
+      : ev.error === 'network' ? 'Voice needs an internet connection here' : 'Voice isn’t available in this browser');
+  };
+  rec.onend = () => { if (listening) { rec = null; setListening(false); applyVoice(); } };
+  try { rec.start(); setListening(true); } catch { keyboardFallback('Voice isn’t available in this browser'); }
+}
+function applyVoice() {
+  const text = $('vText').value.trim();
+  if (!text) { $('vResult').innerHTML = '<p class="muted">Didn’t hear anything. Tap the mic and try again.</p>'; return; }
+  const found = VoiceParse.parse(text);
+  const before = { ...entry() };
+  const e = { ...before }, changed = [];
+  for (const [id, v] of Object.entries(found)) {
+    if (!Q[id] || hidden.includes(id)) continue;
+    if (id === 'note' && e.note && !e.note.includes(v)) e.note = e.note + ' ' + v; else e[id] = v;
+    changed.push(id);
+  }
+  if (!changed.length) {
+    $('vResult').innerHTML = '<p class="muted">Couldn’t match that to any question. Try naming them, like “stress high, mood good”.</p>';
+    return;
+  }
+  undoSnapshot = { day: current, entry: before };
+  entries[current] = e; save(KEY, entries); refresh();
+  const items = changed.map(id => `<li><b>${Q[id].label}:</b> ${display(Q[id], e[id]).replace(/</g, '&lt;')}</li>`).join('');
+  $('vResult').innerHTML = `<ul>${items}</ul><div class="actions" style="margin-top:10px"><button class="btn" id="vUndo">Undo</button></div>`;
+  $('vUndo').onclick = undoVoice;
+  changed.forEach(id => { const c = document.querySelector(`.q[data-id="${id}"]`); if (c) { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 1500); } });
+  $('vStatus').textContent = 'Saved. Tap any answer below to fix it';
+  toast(`Filled ${changed.length} answer${changed.length > 1 ? 's' : ''}`);
+  maybeCelebrate();
+}
+function undoVoice() {
+  if (!undoSnapshot) return;
+  const { day, entry: prev } = undoSnapshot;
+  if (Object.keys(prev).length) entries[day] = prev; else delete entries[day];
+  save(KEY, entries); undoSnapshot = null; refresh();
+  $('vResult').innerHTML = '<p class="muted">Undone.</p>';
+}
+$('micBtn').onclick = () => { if (listening) return; $('vText').value = ''; startListening(); };
+$('vDone').onclick = () => {
+  if (listening && rec) { rec.stop(); return; } // onend applies the result
+  applyVoice();
+};
+$('vClose').onclick = () => {
+  if (rec) { listening = false; rec.abort(); rec = null; }
+  setListening(false); $('voice').hidden = true;
+};
 
 // ---------- Trends view ----------
 function renderTrends() {

@@ -5,12 +5,15 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
 **What it tracks:** hours slept, how rested you feel, mood, stress, anxiety, irritability, insecurity, energy, Instagram/social media time, eating, water, exercise, daylight, real conversations, late caffeine, alcohol, medication (off by default), and an optional one-line note.
 
 - **Check-in tab:** tap one answer per question. It saves on every tap. Use ‹ › or the week strip to fill in a missed day.
+- **Say it instead:** tap the blue mic button and talk, e.g. *"slept 7 and a half hours, rested okay, stress high, anxiety low, instagram 2 hours, ate well, no alcohol, note long day at work"*. The answers fill in automatically, with an Undo button. If the browser has no voice support, tap the text box and use your keyboard's 🎤 dictation instead.
 - **Trends tab:** 14-day averages, plus *patterns* once you have about 1–2 weeks of data (e.g. "On days you used social media 1h+, your mood was usually poor vs good otherwise").
 - **Settings tab:** switch off questions you don't care about, export to CSV/JSON, and import a backup.
 
 ## Privacy
 
 All data is stored in your browser's `localStorage` on your device. Nothing is sent anywhere. Clearing your browser data deletes it, so export a backup from Settings now and then.
+
+Voice: turning speech into *text* is done by your browser's built-in recognizer. In Chrome that means audio goes to Google's speech service. Safari uses Apple's (often on-device). Keyboard dictation follows your phone's settings. The text is then matched to answers on your device (`voice.js`), and only the answers are saved, locally. Nothing is stored anywhere else.
 
 ## Using it on your phone
 
