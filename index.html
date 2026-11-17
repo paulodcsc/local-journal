@@ -108,10 +108,24 @@
   .row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--card); border: 1px solid var(--line); border-bottom: 0; }
   .row:first-child { border-radius: var(--radius) var(--radius) 0 0; }
   .row:last-child { border-radius: 0 0 var(--radius) var(--radius); border-bottom: 1px solid var(--line); }
-  .row input { width: 22px; height: 22px; accent-color: var(--accent); }
+  .row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
   .btn { display: block; width: 100%; padding: 13px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); margin-bottom: 8px; font-weight: 600; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
   .btn.danger { color: var(--bad); }
+
+  /* Behaviours */
+  .q.beh { border-left: 4px solid var(--accent); }
+  .sublabel { font-size: 12px; color: var(--muted); margin: 10px 0 5px; }
+  .label + .sublabel { margin-top: 0; }
+  .chips.wrap { flex-wrap: wrap; }
+  .chips.wrap .chip { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; }
+  .win { margin-top: 10px; font-size: 14px; color: var(--good); font-weight: 600; }
+  .row input[type=text] { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; }
+  .row .del { color: var(--muted); font-size: 18px; padding: 0 4px 0 12px; }
+  .addrow { display: flex; gap: 8px; margin-top: 8px; }
+  .addrow input { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; }
+  .addrow .btn { width: auto; margin: 0; padding: 12px 18px; }
+  .stat .x { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
   /* Voice */
   .mic {
@@ -157,7 +171,7 @@
     <div class="voice" id="voice" hidden>
       <div class="status"><i class="pulse off" id="pulse"></i><span id="vStatus">Listening…</span></div>
       <textarea id="vText" placeholder="e.g. “Slept 7 hours, rested okay, stress high, anxiety low, instagram 2 hours, ate well, no alcohol”"></textarea>
-      <div class="hint" id="vHint">Say any of the questions in any order, e.g. <i>“slept 7 hours, stress high, mood good, no alcohol”</i>. Say <i>“note”</i> and then anything to save it as your note.</div>
+      <div class="hint" id="vHint">Say any of the questions in any order, e.g. <i>“slept 7 hours, stress high, mood good, no alcohol”</i>. For behaviours: <i>“flirted a lot”</i>, <i>“strong urge to compare myself but I didn’t”</i>. Say <i>“note”</i> and then anything to save it as your note.</div>
       <div class="actions">
         <button class="btn primary" id="vDone">Done</button>
         <button class="btn" id="vClose">Close</button>
@@ -182,6 +196,10 @@
   <!-- SETTINGS -->
   <section class="view" id="v-settings">
     <h1>Settings</h1>
+    <h2>Behaviours to track</h2>
+    <p class="muted">Specific things you do, in your own words. Each day you log how strong the urge was, whether you acted on it, and what set it off.</p>
+    <div id="behList"></div>
+    <div class="addrow"><input id="behNew" placeholder="e.g. Checking his profile" maxlength="40"><button class="btn primary" id="behAdd">Add</button></div>
     <h2>Questions to show</h2>
     <p class="muted">Turn off anything you don't care about. Fewer questions means you're more likely to keep going.</p>
     <div id="toggles"></div>
@@ -230,12 +248,34 @@ const QUESTIONS = [
 ];
 const Q = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
 
+// Behaviours: concrete things you do. Each one is logged as urge → acted on it → triggers,
+// the same split therapy "diary cards" use, so resisting an urge shows up as a win.
+const URGE = ['None', 'Mild', 'Strong', 'Very strong'];
+const DID = ['No', 'Once', 'A few times', 'A lot'];
+const TRIGGERS = ['Bored', 'Lonely', 'Anxious', 'Felt rejected', 'Scrolling', 'Tired', 'Drinking', 'After a fight', 'Other'];
+const DEFAULT_BEHAVIORS = [
+  { id: 'flirt', name: 'Obsessive flirting' },
+  { id: 'compare', name: 'Comparing myself to others' },
+];
+function behaviorFields(b) {
+  return [
+    { id: b.id + '_urge', label: `${b.name}: urge`, type: 'scale', opts: URGE, good: 'neutral', beh: b },
+    { id: b.id + '_did', label: `${b.name}: acted on it`, type: 'scale', opts: DID, good: 'low', beh: b },
+    { id: b.id + '_why', label: `${b.name}: triggers`, type: 'multi', optional: true, beh: b },
+  ];
+}
+const HABITS_START = QUESTIONS.findIndex(q => q.id === 'instagram'); // behaviours render just before this
+
 // ---------- Storage (localStorage, safe) ----------
 const KEY = 'lj.entries.v1', HIDE_KEY = 'lj.hidden.v1';
 function load(k, fallback) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast('⚠️ Could not save — storage blocked'); return false; } }
 let entries = load(KEY, {});
 let hidden = load(HIDE_KEY, null) ?? QUESTIONS.filter(q => q.off).map(q => q.id);
+const BEH_KEY = 'lj.behaviors.v1';
+let behaviors = load(BEH_KEY, null) ?? DEFAULT_BEHAVIORS;
+const allFields = () => [...QUESTIONS, ...behaviors.flatMap(behaviorFields)];
+const field = id => Q[id] || allFields().find(f => f.id === id);
 
 // ---------- Dates ----------
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -247,14 +287,15 @@ let current = todayIso();
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
 const visible = () => QUESTIONS.filter(q => !hidden.includes(q.id));
-const counted = () => visible().filter(q => !q.optional);
+const counted = () => [...visible(), ...behaviors.flatMap(behaviorFields)].filter(q => !q.optional);
 function valueCount(q) { return q.type === 'yesno' ? 2 : q.type === 'scale' ? q.opts.length : 0; }
 // 0..1 "goodness" of an answer so we can color it
 function goodness(q, v) {
-  const n = valueCount(q); if (!n) return null;
+  const n = valueCount(q); if (!n || q.good === 'neutral') return null; // urges aren't failures: no red/green
   const t = v / (n - 1);
   return q.good === 'high' ? t : 1 - t;
 }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tone = g => g == null ? '' : g >= 0.66 ? 'g' : g >= 0.34 ? 'm' : 'b';
 let toastTimer;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1200); }
@@ -298,7 +339,9 @@ function renderHeader() {
 function renderForm() {
   const f = $('form'); f.innerHTML = '';
   const e = entry();
+  let behDone = false;
   for (const q of visible()) {
+    if (!behDone && QUESTIONS.indexOf(q) >= HABITS_START) { behaviors.forEach(b => f.appendChild(behaviorCard(b, e))); behDone = true; }
     const card = document.createElement('div'); card.className = 'q'; card.dataset.id = q.id;
     const lab = document.createElement('div'); lab.className = 'label';
     lab.innerHTML = `<span>${q.label}</span>`;
@@ -339,6 +382,53 @@ function renderForm() {
     }
     f.appendChild(card);
   }
+  if (!behDone) behaviors.forEach(b => f.appendChild(behaviorCard(b, e)));
+}
+
+function behaviorCard(b, e) {
+  const [fu, fd, fw] = behaviorFields(b);
+  const card = document.createElement('div'); card.className = 'q beh'; card.dataset.id = b.id;
+  const lab = document.createElement('div'); lab.className = 'label';
+  lab.appendChild(document.createElement('span')).textContent = b.name;
+  card.appendChild(lab);
+  const sub = text => { const d = document.createElement('div'); d.className = 'sublabel'; d.textContent = text; card.appendChild(d); };
+  const chips = (q, onPick) => {
+    const row = document.createElement('div'); row.className = 'chips';
+    q.opts.forEach((label, i) => {
+      const on = e[q.id] === i;
+      const btn = document.createElement('button');
+      btn.className = 'chip' + (on ? ' on ' + tone(goodness(q, i)) : '');
+      btn.textContent = label; btn.setAttribute('aria-pressed', on);
+      btn.onclick = () => { setValue(q.id, on ? undefined : i); if (!on) onPick(i); refresh(); };
+      row.appendChild(btn);
+    });
+    card.appendChild(row);
+  };
+  const cheer = () => { const x = entry(); if (x[fu.id] > 0 && x[fd.id] === 0) toast('Urge resisted 💪'); else maybeCelebrate(); };
+  sub('Urge');
+  // "No urge" almost always means "didn't do it": fill that in to save a tap.
+  chips(fu, i => { if (i === 0 && entry()[fd.id] === undefined) setValue(fd.id, 0); cheer(); });
+  sub('Acted on it?');
+  chips(fd, cheer);
+  if (e[fu.id] > 0 || e[fd.id] > 0) {
+    sub('What set it off? (optional, pick any)');
+    const row = document.createElement('div'); row.className = 'chips wrap';
+    const picked = e[fw.id] || [];
+    for (const t of TRIGGERS) {
+      const on = picked.includes(t);
+      const btn = document.createElement('button');
+      btn.className = 'chip' + (on ? ' on' : ''); btn.textContent = t; btn.setAttribute('aria-pressed', on);
+      btn.onclick = () => { const next = on ? picked.filter(x => x !== t) : [...picked, t]; setValue(fw.id, next.length ? next : undefined); refresh(); };
+      row.appendChild(btn);
+    }
+    card.appendChild(row);
+  }
+  if (e[fu.id] > 0 && e[fd.id] === 0) {
+    const w = document.createElement('div'); w.className = 'win';
+    w.textContent = 'You felt the urge and didn’t act on it. That’s the hard part. 💪';
+    card.appendChild(w);
+  }
+  return card;
 }
 
 function lastSleep() {
@@ -364,6 +454,7 @@ function display(q, v) {
   if (q.type === 'hours') return v + 'h';
   if (q.type === 'note') return `“${v}”`;
   if (q.type === 'yesno') return v ? 'Yes' : 'No';
+  if (q.type === 'multi') return v.join(', ');
   return q.opts[v];
 }
 function setListening(on, msg) {
@@ -408,11 +499,11 @@ function startListening() {
 function applyVoice() {
   const text = $('vText').value.trim();
   if (!text) { $('vResult').innerHTML = '<p class="muted">Didn’t hear anything. Tap the mic and try again.</p>'; return; }
-  const found = VoiceParse.parse(text);
+  const found = VoiceParse.parse(text, behaviors);
   const before = { ...entry() };
   const e = { ...before }, changed = [];
   for (const [id, v] of Object.entries(found)) {
-    if (!Q[id] || hidden.includes(id)) continue;
+    if (!field(id) || hidden.includes(id)) continue;
     if (id === 'note' && e.note && !e.note.includes(v)) e.note = e.note + ' ' + v; else e[id] = v;
     changed.push(id);
   }
@@ -422,10 +513,10 @@ function applyVoice() {
   }
   undoSnapshot = { day: current, entry: before };
   entries[current] = e; save(KEY, entries); refresh();
-  const items = changed.map(id => `<li><b>${Q[id].label}:</b> ${display(Q[id], e[id]).replace(/</g, '&lt;')}</li>`).join('');
+  const items = changed.map(id => `<li><b>${esc(field(id).label)}:</b> ${esc(display(field(id), e[id]))}</li>`).join('');
   $('vResult').innerHTML = `<ul>${items}</ul><div class="actions" style="margin-top:10px"><button class="btn" id="vUndo">Undo</button></div>`;
   $('vUndo').onclick = undoVoice;
-  changed.forEach(id => { const c = document.querySelector(`.q[data-id="${id}"]`); if (c) { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 1500); } });
+  changed.forEach(id => { const c = document.querySelector(`.q[data-id="${id.split('_')[0]}"]`); if (c) { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 1500); } });
   $('vStatus').textContent = 'Saved. Tap any answer below to fix it';
   toast(`Filled ${changed.length} answer${changed.length > 1 ? 's' : ''}`);
   maybeCelebrate();
@@ -452,6 +543,22 @@ function renderTrends() {
   const t = todayIso();
   const days = Array.from({ length: 14 }, (_, i) => addDays(t, i - 13));
   const st = $('stats'); st.innerHTML = '';
+  for (const b of behaviors) {
+    const [fu, fd, fw] = behaviorFields(b);
+    const logged = days.filter(d => entries[d]?.[fd.id] !== undefined);
+    const acted = logged.filter(d => entries[d][fd.id] > 0).length;
+    const resisted = days.filter(d => entries[d]?.[fu.id] > 0 && entries[d]?.[fd.id] === 0).length;
+    const counts = {};
+    days.forEach(d => (entries[d]?.[fw.id] || []).forEach(t => counts[t] = (counts[t] || 0) + 1));
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0].toLowerCase());
+    const bars = days.map(d => { const v = entries[d]?.[fd.id]; return v === undefined ? '<i class="none"></i>' : `<i style="height:${Math.max(8, v / 3 * 100)}%"></i>`; }).join('');
+    const el = document.createElement('div'); el.className = 'stat';
+    el.innerHTML = `<div class="k">${esc(b.name)}</div><div class="v">${logged.length ? `${acted} of ${logged.length} days` : '—'}</div>`
+      + (resisted ? `<div class="x">Resisted the urge ${resisted}×</div>` : '')
+      + (top.length ? `<div class="x">Usually when: ${esc(top.join(', '))}</div>` : '')
+      + `<div class="bars">${bars}</div>`;
+    st.appendChild(el);
+  }
   const numeric = visible().filter(q => q.type !== 'note');
   for (const q of numeric) {
     const vals = days.map(d => entries[d]?.[q.id]);
@@ -485,8 +592,30 @@ function renderTrends() {
     { name: 'had caffeine after 2pm',  test: e => e.caffeine !== undefined ? e.caffeine === 1 : null, ids: ['caffeine'] },
     { name: 'drank alcohol',           test: e => e.alcohol !== undefined ? e.alcohol === 1 : null, ids: ['alcohol'] },
   ].filter(c => c.ids.every(id => !hidden.includes(id)));
+  const actedOn = b => e => e[b.id + '_did'] !== undefined ? e[b.id + '_did'] > 0 : null;
+  // States that often drive a behaviour: compare how often you acted on it on those days.
+  const states = [
+    { name: 'felt stressed',        test: e => e.stress !== undefined ? e.stress >= 3 : null, ids: ['stress'] },
+    { name: 'felt anxious',         test: e => e.anxiety !== undefined ? e.anxiety >= 3 : null, ids: ['anxiety'] },
+    { name: 'felt insecure',        test: e => e.insecure !== undefined ? e.insecure >= 3 : null, ids: ['insecure'] },
+    { name: 'were in a low mood',   test: e => e.mood !== undefined ? e.mood <= 1 : null, ids: ['mood'] },
+    { name: 'felt tired',           test: e => e.rested !== undefined ? e.rested <= 1 : null, ids: ['rested'] },
+  ].filter(c => c.ids.every(id => !hidden.includes(id)));
 
   const found = [];
+  for (const b of behaviors) for (const c of [...conditions, ...states]) {
+    const yes = [], no = [];
+    for (const e of all) { const r = c.test(e), a = actedOn(b)(e); if (r === null || a === null) continue; (r ? yes : no).push(a ? 1 : 0); }
+    if (yes.length < 3 || no.length < 3) continue;
+    const pct = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100);
+    const diff = pct(yes) - pct(no);
+    if (Math.abs(diff) < 30) continue;
+    found.push({ size: Math.abs(diff) / 25, better: diff < 0, text:
+      `On days you <b>${c.name}</b>, you acted on <b>${esc(b.name.toLowerCase())}</b> on ${pct(yes)}% of days vs ${pct(no)}% otherwise.` });
+  }
+  // ...and how acting on a behaviour lines up with how you feel.
+  conditions.push(...behaviors.map(b => ({ name: `acted on “${esc(b.name.toLowerCase())}”`, test: actedOn(b) })));
+
   for (const c of conditions) for (const f of feelings) {
     const yes = [], no = [];
     for (const e of all) {
@@ -517,6 +646,11 @@ function renderTrends() {
     const bits = [];
     if (e.sleep !== undefined) bits.push(`${e.sleep}h sleep`);
     for (const id of ['mood', 'stress', 'anxiety']) if (e[id] !== undefined) bits.push(`${Q[id].label.toLowerCase().replace('overall ', '')}: ${Q[id].opts[e[id]].toLowerCase()}`);
+    for (const be of behaviors) {
+      const did = e[be.id + '_did'], urge = e[be.id + '_urge'];
+      if (did > 0) bits.push(`${be.name.toLowerCase()}: ${DID[did].toLowerCase()}`);
+      else if (urge > 0 && did === 0) bits.push(`resisted ${be.name.toLowerCase()} 💪`);
+    }
     const b = document.createElement('button'); b.className = 'log';
     b.innerHTML = `<div class="d">${parse(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</div><div class="s"></div>`;
     b.querySelector('.s').textContent = bits.join(' · ') + (e.note ? ` — “${e.note}”` : '');
@@ -526,7 +660,32 @@ function renderTrends() {
 }
 
 // ---------- Settings view ----------
+function saveBehaviors() { save(BEH_KEY, behaviors); }
+function renderBehaviors() {
+  const list = $('behList'); list.innerHTML = '';
+  if (!behaviors.length) list.innerHTML = '<p class="muted">No behaviours yet.</p>';
+  for (const b of behaviors) {
+    const row = document.createElement('div'); row.className = 'row';
+    const name = Object.assign(document.createElement('input'), { type: 'text', value: b.name, maxLength: 40 });
+    name.setAttribute('aria-label', 'Behaviour name');
+    name.onchange = () => { const v = name.value.trim(); if (v) { b.name = v; saveBehaviors(); } else name.value = b.name; };
+    const del = Object.assign(document.createElement('button'), { className: 'del', textContent: '✕' });
+    del.setAttribute('aria-label', 'Stop tracking ' + b.name);
+    del.onclick = () => {
+      if (!confirm(`Stop tracking “${b.name}”? Past entries stay in your backups.`)) return;
+      behaviors = behaviors.filter(x => x !== b); saveBehaviors(); renderBehaviors();
+    };
+    row.append(name, del); list.appendChild(row);
+  }
+}
+$('behAdd').onclick = () => {
+  const name = $('behNew').value.trim(); if (!name) return $('behNew').focus();
+  behaviors = [...behaviors, { id: 'b' + Date.now().toString(36), name }];
+  saveBehaviors(); $('behNew').value = ''; renderBehaviors(); toast('Added');
+};
+$('behNew').onkeydown = ev => { if (ev.key === 'Enter') $('behAdd').click(); };
 function renderSettings() {
+  renderBehaviors();
   const t = $('toggles'); t.innerHTML = '';
   for (const q of QUESTIONS) {
     const row = document.createElement('label'); row.className = 'row';
@@ -544,13 +703,13 @@ function download(name, text, type) {
   a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-$('exportJson').onclick = () => download(`journal-backup-${todayIso()}.json`, JSON.stringify({ version: 1, entries, hidden }, null, 2), 'application/json');
+$('exportJson').onclick = () => download(`journal-backup-${todayIso()}.json`, JSON.stringify({ version: 1, entries, hidden, behaviors }, null, 2), 'application/json');
 $('exportCsv').onclick = () => {
-  const cols = QUESTIONS.map(q => q.id);
-  const esc = s => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  const label = (q, v) => v === undefined ? '' : q.type === 'scale' ? q.opts[v] : q.type === 'yesno' ? (v ? 'Yes' : 'No') : String(v);
-  const lines = [['date', ...QUESTIONS.map(q => q.label)].map(esc).join(',')];
-  for (const d of Object.keys(entries).sort()) lines.push([d, ...cols.map(c => esc(label(Q[c], entries[d][c])))].join(','));
+  const fs = allFields();
+  const cell = s => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const label = (q, v) => v === undefined ? '' : q.type === 'scale' ? q.opts[v] : q.type === 'yesno' ? (v ? 'Yes' : 'No') : q.type === 'multi' ? v.join('; ') : String(v);
+  const lines = [['date', ...fs.map(q => q.label)].map(cell).join(',')];
+  for (const d of Object.keys(entries).sort()) lines.push([d, ...fs.map(q => cell(label(q, entries[d][q.id])))].join(','));
   download(`journal-${todayIso()}.csv`, lines.join('\n'), 'text/csv');
 };
 $('importJson').onclick = () => $('file').click();
@@ -563,7 +722,8 @@ $('file').onchange = async ev => {
     if (!confirm(`Import ${n} day(s)? Days that exist in both will use the backup's version.`)) return;
     entries = { ...entries, ...data.entries };
     if (Array.isArray(data.hidden)) hidden = data.hidden;
-    save(KEY, entries); save(HIDE_KEY, hidden);
+    if (Array.isArray(data.behaviors)) for (const b of data.behaviors) if (b && b.id && b.name && !behaviors.some(x => x.id === b.id)) behaviors = [...behaviors, b];
+    save(KEY, entries); save(HIDE_KEY, hidden); saveBehaviors();
     toast(`Imported ${n} day(s)`); renderSettings();
   } catch { alert('That file doesn’t look like a journal backup.'); }
   ev.target.value = '';

@@ -137,14 +137,47 @@
   const IMPLIES_SOME = new Set(['stressed', 'anxious', 'nervous', 'worried', 'irritated', 'annoyed', 'cranky', 'grumpy', 'angry', 'irritable', 'insecure', 'self-conscious', 'rested', 'energetic']);
   const IMPLIED_DEFAULT = { rested: 3, energy: 3 };
 
-  function parse(text) {
+  // Behaviours are named by the user ("Obsessive flirting"), so their keywords come from the name:
+  // "flirting" → stem "flirt" matches flirted / flirty / flirt.
+  const BEH_STOP = new Set('obsessive obsessively compulsive compulsively myself yourself others other people guys girls someone with about too much really very the and for from his her their when what'.split(' '));
+  const stemsOf = name => name.toLowerCase().split(/[^a-z']+/)
+    .filter(w => w.length > 3 && !BEH_STOP.has(w))
+    .map(w => w.replace(/(ing|ed|es|s|e)$/, '')).filter(w => w.length >= 4);
+  const URGE_W = new Set(['urge', 'urges', 'wanted', 'want', 'tempted', 'temptation', 'craving', 'itch', 'itching', 'impulse']);
+  const RESIST_W = new Set(['not', 'no', 'never', 'resisted', 'resist', 'avoided', 'stopped', 'held', 'without', 'zero', 'none', 'nope']);
+  const ACTED_W = new Set(['did', 'gave', 'caved', 'anyway', 'acted', 'still', 'yes', 'yeah']);
+  function freq(seg) { // 0 no · 1 once · 2 a few times · 3 a lot
+    for (const w of seg) {
+      if (['once', '1', 'little', 'bit'].includes(w)) return 1;
+      if (['twice', 'couple', 'few', 'several', 'some', '2', '3', '4', '5'].includes(w)) return 2;
+      if (['LOT', 'VHIGH', 'many', 'constantly', 'obsessively', 'compulsively', 'nonstop', 'all', 'much', 'very', 'really'].includes(w)) return 3;
+      const n = num(w); if (n !== null && n > 5) return 3;
+    }
+    return null;
+  }
+  function urgeLevel(seg) { // 0 none · 1 mild · 2 strong · 3 very strong
+    for (const w of seg) {
+      if (['none', 'no', 'not', 'zero', 'nothing'].includes(w)) return 0;
+      if (['VHIGH', 'LOT', 'huge', 'intense', 'overwhelming', 'very', 'really', 'super', 'so', 'badly'].includes(w)) return 3;
+      if (['little', 'mild', 'slight', 'small', 'low', 'bit', 'tiny', 'weak'].includes(w)) return 1;
+      if (['strong', 'big', 'high', 'some'].includes(w)) return 2;
+    }
+    return 2;
+  }
+
+  function parse(text, behaviors = []) {
+    const behStems = behaviors.map(b => ({ id: b.id, stems: stemsOf(b.name) })).filter(b => b.stems.length);
     let note = null;
     const noteMatch = text.match(/\b(?:note|notes|diary|journal)\b[:,]?\s*(.*)$/i);
     if (noteMatch) { note = noteMatch[1].trim(); text = text.slice(0, noteMatch.index); }
 
     const toks = tokens(text);
     const hits = []; // {id, i, word}
-    toks.forEach((w, i) => { if (KW[w]) hits.push({ id: KW[w], i, word: w }); });
+    toks.forEach((w, i) => {
+      const b = behStems.find(x => x.stems.some(st => w.startsWith(st)));
+      if (b) { const prev = hits[hits.length - 1]; if (!(prev && prev.id === 'beh:' + b.id && i - prev.i <= 3)) hits.push({ id: 'beh:' + b.id, i, word: w }); }
+      else if (KW[w]) hits.push({ id: KW[w], i, word: w });
+    });
     // "energy drink" is caffeine, not energy
     hits.forEach(h => { if (h.word === 'energy' && /^drinks?$/.test(toks[h.i + 1] || '')) h.id = 'caffeine'; });
     // "drink(s)" next to water/coffee belongs to that, not alcohol
@@ -180,14 +213,14 @@
 
     // Pass 1: value right after the keyword ("stress high", "slept 7 hours")
     valid.forEach((h, k) => {
-      if (h.id in result) return;
+      if (h.id.startsWith('beh:') || h.id in result) return;
       const before = beforeIdx(k).map(j => toks[j]);
       const v = read(h.id, after(k), before, h.word);
       if (v !== null) { result[h.id] = v; after(k).forEach((_, j) => used.add(h.i + 1 + j)); }
     });
     // Pass 2: value just before the keyword ("high stress", "8 hours of sleep", "no alcohol")
     valid.forEach((h, k) => {
-      if (h.id in result) return;
+      if (h.id.startsWith('beh:') || h.id in result) return;
       const idx = beforeIdx(k).filter(j => !used.has(j));
       const seg = idx.map(j => toks[j]);
       let v = h.id === 'sleep' ? sleepValue(seg)
@@ -202,6 +235,31 @@
         }
       }
       if (v !== null) { result[h.id] = v; idx.forEach(j => used.add(j)); }
+    });
+
+    // Behaviours: "strong urge to flirt but I didn't", "compared myself a lot", "no flirting"
+    valid.forEach((h, k) => {
+      if (!h.id.startsWith('beh:')) return;
+      const id = h.id.slice(4);
+      if (result[id + '_did'] !== undefined || result[id + '_urge'] !== undefined) return;
+      const before = [];
+      for (let j = h.i - 1; j >= 0 && j >= h.i - 5; j--) { if (toks[j] === '|' || (k > 0 && j <= valid[k - 1].i)) break; before.unshift(toks[j]); }
+      const aft = after(k);
+      // the following clause, unless it's about something else ("…, but I didn't")
+      const next = [];
+      let j = h.i + 1 + aft.length;
+      if (toks[j] === '|') for (j++; j < toks.length && toks[j] !== '|' && !valid.some(v => v.i === j); j++) next.push(toks[j]);
+      if ([...before, ...aft].some(w => URGE_W.has(w))) {
+        const u = urgeLevel([...before, ...aft]);
+        result[id + '_urge'] = u;
+        const tail = [...aft, ...next];
+        if (u === 0 || tail.some(w => RESIST_W.has(w))) result[id + '_did'] = 0;
+        else if (tail.some(w => ACTED_W.has(w)) || freq(tail) !== null) result[id + '_did'] = freq(tail) ?? 1;
+      } else if (before.some(w => RESIST_W.has(w)) || RESIST_W.has(aft[0])) {
+        result[id + '_did'] = 0;
+      } else {
+        result[id + '_did'] = freq(aft) ?? 1; // just mentioning it means you did it
+      }
     });
 
     if (note) result.note = note;
