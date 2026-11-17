@@ -1,6 +1,8 @@
 // Guided voice check-in: one question at a time, read aloud, answered with a word or two.
 // Every answer can also be tapped, so it still works where speech recognition doesn't.
 // Uses the app's globals from index.html (entries, setValue, behaviors, …) and VoiceParse.answer.
+// Wrapped in its own scope so its helper names (show, render, …) can't clash with the page's.
+(() => {
 
 const SOUND_KEY = 'lj.guideSound.v1';
 let gSound = load(SOUND_KEY, true);
@@ -304,3 +306,6 @@ document.addEventListener('keydown', ev => { if (G && ev.key === 'Escape') close
 document.addEventListener('visibilitychange', () => {
   if (G && document.visibilityState === 'hidden') { G.token++; stopListening(); stopSpeaking(); G.paused = true; setMic(''); }
 });
+
+window.openGuide = openGuide;
+})();
