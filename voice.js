@@ -349,6 +349,86 @@
     return result;
   }
 
-  root.VoiceParse = { parse };
-  if (typeof module !== 'undefined') module.exports = { parse };
+  // ---------------------------------------------------------------------------------------------
+  // Guided mode: read a short answer to ONE known question ("high", "a bit", "yes", "seven and a half").
+  // ctx: { type: 'slider'|'hours'|'minutes'|'three'|'yesno'|'freq'|'multi'|'note',
+  //        kind: 'amount'|'quality'|'urge' (sliders), labels: [...], prev: yesterday's value }
+  // Returns { value } | { cmd: 'skip'|'back'|'repeat'|'stop' } | { unsure: true } | { noPrev: true } | null
+  const TRIGGER_WORDS = {
+    'Bored': ['bored', 'boredom', 'boring'], 'Lonely': ['lonely', 'alone', 'loneliness', 'isolated'],
+    'Anxious': ['anxious', 'anxiety', 'nervous', 'worried', 'stressed', 'stress'], 'Felt rejected': ['rejected', 'rejection', 'ignored', 'left on read', 'ghosted'],
+    'Scrolling': ['scrolling', 'scrolled', 'instagram', 'insta', 'phone', 'social media', 'tiktok'], 'Tired': ['tired', 'exhausted', 'sleepy'],
+    'Drinking': ['drinking', 'drunk', 'alcohol', 'drinks', 'tipsy'], 'After a fight': ['fight', 'argument', 'argued', 'fought', 'conflict'],
+    'Other': ['other', 'something else'],
+  };
+  const clean = t => ' ' + t.toLowerCase().replace(/[’`]/g, "'").replace(/[-_]/g, ' ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  const hasWord = (raw, phrase) => raw.includes(' ' + phrase.toLowerCase().replace(/[-_]/g, ' ') + ' ');
+  function labelMatch(raw, labels, aliases = {}) {
+    if (/ not /.test(raw)) return null; // "not good" isn't "good"
+    const cands = labels.map((l, i) => [l.toLowerCase(), i]);
+    for (const [k, i] of Object.entries(aliases)) cands.push([k, +i]);
+    cands.sort((a, b) => b[0].length - a[0].length); // "quite high" before "high"
+    for (const [l, i] of cands) if (hasWord(raw, l)) return i;
+    return null;
+  }
+  function urgeWord(seg) {
+    for (const w of seg) {
+      if (['none', 'no', 'not', 'zero', 'nothing'].includes(w)) return 0;
+      if (['VHIGH', 'LOT', 'huge', 'intense', 'overwhelming', 'very', 'really', 'super', 'insane'].includes(w)) return 4;
+      if (['little', 'mild', 'slight', 'small', 'low', 'bit', 'tiny', 'weak', 'LOWMED'].includes(w)) return 1;
+      if (['strong', 'big', 'high', 'MEDHIGH', 'pretty', 'quite', 'fairly'].includes(w)) return 3;
+      if (['some', 'medium', 'moderate', 'okay', 'ok'].includes(w)) return 2;
+    }
+    return null;
+  }
+  function answer(text, ctx) {
+    const raw = clean(text), words = raw.trim().split(' ').filter(Boolean), short = words.length <= 4;
+    if (!raw.trim()) return null;
+    // Commands (only when the reply is short, so "I couldn't stop…" isn't "stop")
+    if (short && /^ (stop|done|finish|finished|that's all|thats all|exit|quit|i'm done|im done|end|close)( it| now| please)? $/.test(raw)) return { cmd: 'stop' };
+    if (short && /^ (go )?(back|previous|go back|last one|undo)( please)? $/.test(raw)) return { cmd: 'back' };
+    if (short && /^ (repeat|again|say (that|it) again|what|sorry what|pardon|come again)( please)? $/.test(raw)) return { cmd: 'repeat' };
+    if (short && /^ (skip|next|pass|skip it|next one|next question|skip this( one)?)( please)? $/.test(raw)) return { cmd: 'skip' };
+    if (/ (not sure|don't know|dont know|do not know|no idea|unsure|dunno|hard to say|can't say|cant say) /.test(raw))
+      return ctx.type === 'slider' ? { unsure: true } : { cmd: 'skip' };
+    if (/ same /.test(raw) && ctx.type !== 'note') return ctx.prev !== undefined && ctx.prev !== null ? { value: ctx.prev } : { noPrev: true };
+
+    const toks = tokens(text).filter(w => w !== '|');
+    let v = null;
+    switch (ctx.type) {
+      case 'slider': {
+        // "pretty high", "medium-high", "between low and medium" are in-betweens, not the label inside them
+        const between = toks.includes('MEDHIGH') ? 3 : toks.includes('LOWMED') ? 1 : null;
+        v = between ?? labelMatch(raw, ctx.labels, { okay: 2, medium: 2, middle: 2 });
+        if (v === null && ctx.kind === 'urge') v = urgeWord(toks);
+        if (v === null && ctx.kind !== 'urge') v = scaleValue(toks, ctx.kind, ctx.prev);
+        if (v === 'UNSURE') return { unsure: true };
+        if (v === 'NOPREV') return { noPrev: true };
+        break;
+      }
+      case 'hours': v = sleepValue(toks); break;
+      case 'minutes': { const m = minutes(toks); v = m === null ? (hasWord(raw, 'none') ? 0 : null) : minutesToIdx(m); break; }
+      case 'three': v = labelMatch(raw, ctx.labels); if (v === null) v = threeValue(toks, []); break;
+      case 'yesno': v = yesNoValue(toks, []); if (v === null && /^ (i )?(did|have|had|took|went|ate) /.test(raw)) v = 1; break;
+      case 'freq': {
+        v = labelMatch(raw, ctx.labels, { twice: 2, 'couple of times': 2, 'a couple': 2, 'few times': 2, never: 0, nope: 0, 'one time': 1 });
+        if (v === null) v = toks.some(w => NO.has(w)) ? 0 : freq(toks);
+        break;
+      }
+      case 'multi': {
+        if (/^ (no|none|nothing|nope|nah|no idea|not really)( really)? $/.test(raw)) return { value: [] };
+        const picked = (ctx.labels || []).filter(l => (TRIGGER_WORDS[l] || [l.toLowerCase()]).some(w => hasWord(raw, w)));
+        v = picked.length ? picked : null;
+        break;
+      }
+      case 'note': {
+        if (/^ (no|nope|nothing|nah|no thanks|none|not really)( thanks| thank you)? $/.test(raw)) return { cmd: 'skip' };
+        v = text.trim(); break;
+      }
+    }
+    return v === null || v === undefined ? null : { value: v };
+  }
+
+  root.VoiceParse = { parse, answer };
+  if (typeof module !== 'undefined') module.exports = { parse, answer };
 })(typeof window !== 'undefined' ? window : globalThis);

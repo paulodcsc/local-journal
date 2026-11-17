@@ -17,11 +17,12 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
   - **What set it off?:** optional (Bored, Lonely, Anxious, Felt rejected, Scrolling, …)
 
   Feeling the urge and *not* acting on it is shown as a win. Trends shows how often you acted on each behaviour, how often you resisted, the usual triggers, and links like *"On days you felt insecure, you acted on it 70% of days vs 20% otherwise."*
-- **Say it instead:** tap the blue mic button and talk the way you naturally would, e.g. *"slept 7 and a half hours, kind of stressed, mood same as yesterday, not sure about anxiety, no alcohol, note long day at work"*.
-  - Hedges land in between: *a bit stressed* goes to Mild, *pretty stressed* to Quite high.
-  - *"more/less … than yesterday"* moves one step from yesterday's answer.
-  - *"actually…"* corrects the last answer you gave.
-  - The result shows what it heard, what changed, and which questions you haven't answered yet. The answers fill in automatically, with an Undo button. If the browser has no voice support, tap the text box and use your keyboard's 🎤 dictation instead.
+- **Say it instead (guided voice):** tap the blue mic button and the app goes through the questions one at a time.
+  - It reads each question aloud (🔊 to turn that off), then listens for a short answer: *"high"*, *"a bit"*, *"pretty good"*, *"yes"*, *"seven and a half"*, *"lonely and bored"*.
+  - It only asks what you haven't answered yet, and skips "acted on it" when the urge was none.
+  - You can also say *"skip"*, *"back"*, *"not sure"*, *"same as yesterday"*, *"repeat"* or *"stop"*.
+  - Every answer can also be tapped. Where voice isn't available (some iPhone home-screen apps), it works as a tap-through check-in.
+  - At the end you see a summary and can undo it all. *"Say everything at once instead"* opens the free-form mode, which understands hedges, comparisons and corrections.
 - **Trends tab:** 14-day averages, plus *patterns* once you have about 1–2 weeks of data (e.g. "On days you used social media 1h+, your mood was usually poor vs good otherwise").
 - **Settings tab:** switch off questions you don't care about, export to CSV/JSON, and import a backup.
 
@@ -41,7 +42,7 @@ It's a static site (plain HTML, no build step). The easiest option:
 
 It then opens like an app and works offline.
 
-Parser tests: `node tests/voice.test.js`.
+Parser tests: `node tests/voice.test.js` and `node tests/guided.test.js`.
 
 To run it locally: `python3 -m http.server`, then open http://localhost:8000.
 

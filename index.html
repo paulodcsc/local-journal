@@ -172,8 +172,58 @@
   .voice ul { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
   .q.flash { box-shadow: 0 0 0 2px var(--good); transition: box-shadow .4s; }
 
+  /* Guided voice check-in (full screen, one question at a time) */
+  body.noscroll { overflow: hidden; }
+  .guide { position: fixed; inset: 0; z-index: 20; background: var(--bg); overflow: hidden;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 10px); }
+  .guide[hidden] { display: none; }
+  .g-wrap { max-width: 560px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+  .g-top { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 14px; font-weight: 600; }
+  .g-top button { width: 40px; height: 40px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); margin-left: 6px; font-size: 17px; }
+  .g-bar { height: 4px; background: var(--line); border-radius: 4px; margin: 10px 0 16px; overflow: hidden; }
+  .g-bar i { display: block; height: 100%; width: 0; background: var(--good); transition: width .25s; }
+  .g-body { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+  .g-title { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .g-sub { font-size: 19px; margin-top: 4px; }
+  .g-y { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .g-opts { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .g-row { display: flex; gap: 8px; margin-top: 16px; }
+  .g-row .g-opt { flex: 1; justify-content: center; }
+  .g-opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 14px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 17px; font-weight: 600; }
+  .g-opt small { font-weight: 400; color: var(--muted); font-size: 13px; text-align: right; }
+  .g-opt.mid { padding: 7px 16px 7px 30px; font-size: 15px; font-weight: 500; background: transparent; border-style: dashed; }
+  .g-opt.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .g-opt.on small { color: inherit; opacity: .85; }
+  .g-tag { font-size: 11px; border: 1px solid currentColor; border-radius: 8px; padding: 1px 5px; margin-left: 6px; white-space: nowrap; }
+  .g-confirm { justify-content: center; margin-top: 12px; }
+  .g-hours { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .g-hours button { width: 64px; height: 56px; border-radius: 14px; background: var(--chip); font-size: 26px; }
+  .g-hval { flex: 1; text-align: center; font-size: 40px; font-weight: 700; }
+  .g-chips { margin-top: 16px; }
+  .g-note { margin-top: 16px; min-height: 100px; }
+  .g-hint { color: var(--muted); font-size: 14px; margin-top: 16px; }
+  .g-hint span { font-size: 12px; }
+  .g-sum { margin: 12px 0; padding-left: 20px; font-size: 15px; }
+  .g-mic { text-align: center; padding: 6px 0; }
+  .g-micbtn { width: 68px; height: 68px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; }
+  .g-micbtn[hidden] { display: none; }
+  .g-micbtn svg { width: 28px; height: 28px; }
+  .g-micbtn.paused { background: var(--chip); color: var(--ink); }
+  .g-micbtn.listening { animation: ring 1.3s infinite; }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(59,110,168,.45); } 100% { box-shadow: 0 0 0 18px rgba(59,110,168,0); } }
+  .g-mictext { font-size: 14px; color: var(--muted); margin-top: 6px; min-height: 20px; }
+  .g-heard { font-size: 17px; min-height: 24px; margin-top: 2px; }
+  .g-nav { display: flex; gap: 8px; }
+  .g-nav[hidden] { display: none; }
+  .g-nav button { flex: 1; padding: 12px 6px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-weight: 600; }
+  .g-nav button[hidden] { display: none; }
+  .g-nav button:disabled { opacity: .4; }
+  .g-alt { display: block; margin: 6px auto 0; font-size: 13px; color: var(--accent); padding: 6px; }
+  .g-alt[hidden] { display: none; }
+
   .toast {
-    position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
+    z-index: 30; position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
     background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 20px; font-size: 14px;
     opacity: 0; pointer-events: none; transition: all .2s;
   }
@@ -238,7 +288,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 5 · sliders</p>
+    <p class="muted" style="text-align:center">Version 6 · guided voice</p>
   </section>
 </main>
 
@@ -248,6 +298,23 @@
   <button data-v="settings"><span>⚙︎</span>Settings</button>
 </nav>
 <div class="toast" id="toast"></div>
+
+<div class="guide" id="guide" hidden role="dialog" aria-modal="true" aria-label="Voice check-in">
+  <div class="g-wrap">
+    <div class="g-top"><span id="gCount"></span><span><button id="gSound" aria-label="Read questions aloud on or off">🔊</button><button id="gClose" aria-label="Close">✕</button></span></div>
+    <div class="g-bar"><i id="gBar"></i></div>
+    <div class="g-body" id="gBody" aria-live="polite"></div>
+    <div class="g-mic">
+      <button class="g-micbtn" id="gMic" aria-label="Answer by voice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <div class="g-mictext" id="gMicText"></div>
+      <div class="g-heard" id="gHeard"></div>
+    </div>
+    <div class="g-nav" id="gNav"><button id="gBack">‹ Back</button><button id="gUnsure">Not sure</button><button id="gSkip">Skip ›</button></div>
+    <button class="g-alt" id="gAlt">Say everything at once instead</button>
+  </div>
+</div>
 
 <script src="voice.js"></script>
 <script>
@@ -709,7 +776,8 @@ function undoVoice() {
   save(KEY, entries); undoSnapshot = null; lastHeard = null; refresh();
   $('vResult').innerHTML = '<p class="muted">Undone.</p>';
 }
-$('micBtn').onclick = () => { if (listening) return; $('vText').value = ''; startListening(); };
+function openFreeform() { if (listening) return; $('vText').value = ''; startListening(); }
+$('micBtn').onclick = () => openGuide(); // guided, one question at a time (guide.js)
 $('vDone').onclick = () => {
   if (listening && rec) { rec.stop(); return; } // onend applies the result
   applyVoice();
@@ -947,5 +1015,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   }).catch(() => {});
 }
 </script>
+<script src="guide.js"></script>
 </body>
 </html>
