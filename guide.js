@@ -56,7 +56,7 @@ function openGuide() {
   // Only ask what's still open; if everything is answered, go through it all.
   G.onlyMissing = steps.some(s => applies(s, entry()) && isMissing(s, entry()));
   $('guide').hidden = false; document.body.classList.add('noscroll');
-  $('gSound').textContent = gSound ? '🔊' : '🔇';
+  $('gSound').innerHTML = icon(gSound ? 'sound' : 'mute');
   goNext();
   $('gSound').hidden = !G?.voice;
 }
@@ -298,7 +298,7 @@ $('gMic').onclick = () => {
   G.paused = false; G.silent = 0; G.retries = 0; G.token++; listen();
 };
 $('gSound').onclick = () => {
-  gSound = !gSound; save(SOUND_KEY, gSound); $('gSound').textContent = gSound ? '🔊' : '🔇';
+  gSound = !gSound; save(SOUND_KEY, gSound); $('gSound').innerHTML = icon(gSound ? 'sound' : 'mute');
   if (!gSound) { stopSpeaking(); if (G && G.i >= 0 && !G.listening) { G.token++; listen(); } }
 };
 $('gAlt').onclick = () => { closeGuide(); openFreeform(); };
