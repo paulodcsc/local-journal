@@ -55,3 +55,7 @@ To run it locally: `python3 -m http.server`, then open http://localhost:8000.
 ## Customizing questions
 
 Edit the `QUESTIONS` array near the top of the `<script>` in `index.html`.
+
+## Credits
+
+Titles use [Sora](https://github.com/sora-xor/sora-font) (SIL Open Font License 1.1, see `fonts/OFL-Sora.txt`), bundled in the app so it works offline.
