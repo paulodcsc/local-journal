@@ -1,6 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><radialGradient id="g" cx="30%" cy="20%" r="90%"><stop offset="0" stop-color="#6b5646"/><stop offset="1" stop-color="#3b2e25"/></radialGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#f3ede6" stroke-width="26" opacity=".9"/>
-  <path d="M190 262l46 46 92-104" fill="none" stroke="#dcef3c" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <radialGradient id="bg" cx="34%" cy="66%" r="85%">
+      <stop offset="0" stop-color="#7a6352"/>
+      <stop offset="1" stop-color="#3b2e25"/>
+    </radialGradient>
+    <clipPath id="body"><ellipse cx="0" cy="0" rx="138" ry="98"/></clipPath>
+    <clipPath id="wingA"><ellipse cx="0" cy="0" rx="54" ry="94"/></clipPath>
+    <clipPath id="wingB"><ellipse cx="0" cy="0" rx="56" ry="98"/></clipPath>
+  </defs>
+
+  <!-- background: same mocha as the app -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- soft shadow under the bee -->
+  <ellipse cx="270" cy="438" rx="128" ry="16" fill="#26210f" opacity=".22"/>
+
+  <!-- back wing -->
+  <g transform="translate(318 168) rotate(16)">
+    <ellipse cx="0" cy="0" rx="54" ry="94" fill="#cdb9a5"/>
+    <g clip-path="url(#wingA)" fill="none" stroke="#a8917d" stroke-width="9" stroke-linecap="round">
+      <path d="M-60 -6 Q0 -36 60 -14"/>
+      <path d="M-14 -100 Q30 -10 6 100"/>
+    </g>
+  </g>
+
+  <!-- front wing -->
+  <g transform="translate(222 194) rotate(-40)">
+    <ellipse cx="0" cy="0" rx="56" ry="98" fill="#f6f1ea"/>
+    <g clip-path="url(#wingB)" fill="none" stroke="#cdb9a5" stroke-width="9" stroke-linecap="round">
+      <path d="M-62 -10 Q0 -40 62 -18"/>
+      <path d="M-16 -104 Q30 -10 4 104"/>
+    </g>
+  </g>
+
+  <!-- body, tilted up to the right -->
+  <g transform="translate(286 322) rotate(-16)">
+    <!-- stinger -->
+    <path d="M-128 -22 L-204 6 L-126 34 Z" fill="#26210f" stroke="#26210f" stroke-width="10" stroke-linejoin="round"/>
+    <ellipse cx="0" cy="0" rx="138" ry="98" fill="#dcef3c"/>
+    <!-- stripes -->
+    <g clip-path="url(#body)" fill="#26210f">
+      <rect x="-78" y="-120" width="36" height="240" transform="rotate(8)"/>
+      <rect x="-6" y="-120" width="36" height="240" transform="rotate(8)"/>
+    </g>
+    <!-- eye -->
+    <circle cx="80" cy="-24" r="17" fill="#26210f"/>
+  </g>
 </svg>
