@@ -35,7 +35,7 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
 
 ### When voice mishears
 
-Speech recognition often hears short words wrong, like "high" as "hi", "hey" or "I". The app corrects the usual mistakes ("hi" becomes high, "lo" low, "mile" mild, "ones" once, and "auto" alto in Portuguese). If nothing matches, it picks the option that *sounds* like what it heard, but only when exactly one fits. The green bubble always shows what it chose (*"hi" → High*), and you can also answer with a number from 1 to 5.
+Speech recognition often hears short words wrong, like "high" as "hi", "hey" or "I". The app corrects the usual mistakes ("hi" becomes high, "hello" or "lo" low, "mile" mild, "ones" once, and "auto" alto in Portuguese). If nothing matches, it picks the option that *sounds* like what it heard, but only when exactly one fits. The green bubble always shows what it chose (*"hi" → High*), and you can also answer with a number from 1 to 5.
 
 ### Voice in Portuguese (pt-BR)
 

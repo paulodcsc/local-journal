@@ -46,7 +46,8 @@ const cases = [
   ['not sure', { type: 'yesno' }, { cmd: 'skip' }], ['banana', S, null],
   // common mishearings
   ['hi', S, { value: 4 }], ['Hi.', S, { value: 4 }], ['hey', S, { value: 4 }], ['I', S, { value: 4 }], ['eye', S, { value: 4 }],
-  ['very hi', S, { value: 4 }], ['quite hi', S, { value: 3 }], ['pretty hi', S, { value: 3 }], ['lo', S, { value: 0 }],
+  ['very hi', S, { value: 4 }], ['quite hi', S, { value: 3 }], ['pretty hi', S, { value: 3 }], ['lo', S, { value: 0 }], ['hello', S, { value: 0 }], ['Hello.', S, { value: 0 }], ['hallo', S, { value: 0 }],
+  ['very hello', S, { value: 0 }], ['hello', { type: 'slider', kind: 'quality', labels: ENERGY }, { value: 1 }], ['hello', { type: 'note' }, { value: 'hello' }],
   ['mile', S, { value: 1 }], ['media', S, { value: 2 }], ['for', S, { value: 3 }], ['to', S, { value: 1 }],
   ['hi', { type: 'slider', kind: 'quality', labels: ENERGY }, { value: 4 }],
   ['ones', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 1 }],

@@ -228,7 +228,7 @@
   // before parsing. SOUNDALIKE is safe anywhere; SHORT_FIX only when the whole answer is that word.
   const SOUNDALIKE = [
     [/\b(?:hi|hey|hai|hy|hiya|heigh|hight|hie|hii)\b/g, 'high'],
-    [/\b(?:lo|loh|lowe)\b/g, 'low'],
+    [/\b(?:lo|loh|lowe|hello|hallo|hullo|hollow|halo|lou|loo)\b/g, 'low'],
     [/\b(?:ones|once's)\b/g, 'once'],
     [/\b(?:allot|alot|a lots)\b/g, 'a lot'],
     [/\b(?:okey|okie|okey dokey)\b/g, 'okay'],

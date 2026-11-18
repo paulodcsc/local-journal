@@ -93,6 +93,8 @@ const cases = [
   // common mishearings in free-form
   ['stress hi, mood lo', { stress: 4, mood: 1 }],
   ['anxiety very hi', { anxiety: 4 }],
+  ['stress hello, energy hello', { stress: 0, energy: 1 }],
+  ['slept 7 hours note said hello to Ana', { sleep: 7, note: 'said hello to Ana' }],
   ['flirted allot', { flirt_did: 3 }, B],
   // Portuguese (pt-BR)
   ['dormi sete e meia, estresse alto, humor mais ou menos', { sleep: 7.5, stress: 4, mood: 2 }, { lang: 'pt' }],
