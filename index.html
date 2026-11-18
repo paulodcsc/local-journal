@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Daily Check-in</title>
 <meta name="description" content="A tap-only daily mental health journal. Data stays on your device.">
 <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)">
@@ -43,6 +43,9 @@
   /* ---------- Base ---------- */
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  /* No double-tap zoom (also removes the tap delay). Sliders keep their own pan-y. */
+  html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  input, textarea, select { font-size: max(16px, 1em); } /* below 16px, iPhone zooms in when you focus a field */
   body {
     font: var(--fs-md)/1.45 var(--font); -webkit-font-smoothing: antialiased;
     padding: env(safe-area-inset-top) 0 calc(140px + env(safe-area-inset-bottom));
@@ -349,7 +352,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 7 · new look</p>
+    <p class="muted" style="text-align:center">Version 8 · no zoom</p>
   </section>
 </main>
 
@@ -453,6 +456,11 @@ const ICONS = {
 };
 const icon = (name, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
+
+// ---------- No zooming ----------
+// iPhone Safari ignores user-scalable=no, so block pinch gestures directly.
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, ev => ev.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', ev => { if (ev.touches.length > 1) ev.preventDefault(); }, { passive: false });
 
 // Behaviours: concrete things you do. Each one is logged as urge → acted on it → triggers,
 // the same split therapy "diary cards" use, so resisting an urge shows up as a win.
