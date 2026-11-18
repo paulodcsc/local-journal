@@ -95,6 +95,8 @@
   .navbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--ink);
     background: var(--glass); border: 1px solid var(--glass-line); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
   .navbtn:disabled { opacity: .35; cursor: default; }
+  .today-link { margin-top: 6px; padding: 5px 12px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 700; color: var(--accent-ink); background: var(--accent); }
+  .today-link[hidden] { display: none; }
   .week { display: flex; gap: var(--sp-1); margin-bottom: var(--sp-4); padding: 6px; border-radius: var(--r-lg);
     background: var(--glass); border: 1px solid var(--glass-line); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
   .week button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: var(--sp-2) 0; border-radius: 20px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
@@ -109,7 +111,8 @@
   .instinct[hidden] { display: none; }
 
   /* ---------- Sections ---------- */
-  .sec { margin-bottom: var(--sp-2); }
+  .sec { margin-bottom: var(--sp-2); scroll-margin-top: calc(12px + env(safe-area-inset-top)); }
+  .done-card { scroll-margin-top: calc(12px + env(safe-area-inset-top)); }
   .sec-h { display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-3) var(--sp-1); text-align: left; border-radius: var(--r-md); }
   .sec-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--surface); color: var(--accent); box-shadow: var(--shadow); transition: background var(--dur), color var(--dur); }
   .sec.done .sec-ic { background: var(--lime); color: var(--lime-ink); }
@@ -134,8 +137,12 @@
   .q { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-4); margin-bottom: var(--sp-2); }
   .q .label { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); font-family: var(--display); font-weight: 500; letter-spacing: -.01em; min-height: 32px; }
   .q .label small, .q .label .lab-r { font-family: var(--font); letter-spacing: 0; }
+  .q .label .saved { color: var(--pos); font-weight: 600; opacity: 0; transition: opacity var(--dur); }
+  .q .label .saved.on { opacity: 1; }
   .q .label small { color: var(--muted); font-weight: 500; font-size: var(--fs-xs); white-space: nowrap; }
-  .lab-r { display: flex; align-items: center; gap: var(--sp-2); }
+  .lab-r { display: flex; align-items: center; gap: var(--sp-2); flex: none; }
+  .lab-t { display: flex; flex-direction: column; min-width: 0; }
+  .lab-t small { font-family: var(--font); font-size: var(--fs-xs); font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
   .chips { display: flex; gap: var(--sp-2); }
   .chip { flex: 1; min-height: 44px; padding: 6px 4px; border-radius: 999px; background: var(--surface-2); font-size: var(--fs-sm); font-weight: 500; line-height: 1.15;
     transition: background var(--dur), color var(--dur), transform 80ms; }
@@ -146,7 +153,9 @@
   .stepper { display: flex; align-items: center; gap: var(--sp-3); }
   .stepper button { width: 52px; height: 52px; border-radius: 50%; background: var(--surface-2); font-size: 22px; display: grid; place-items: center; }
   .stepper .val { flex: 1; width: auto; height: auto; border-radius: var(--r-sm); background: none; font-family: var(--display); font-size: 32px; font-weight: 500; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-  .stepper .val.empty { color: var(--muted); font-weight: 500; font-size: var(--fs-sm); }
+  .stepper .val.empty { display: flex; flex-direction: column; align-items: center; line-height: 1.1; color: var(--muted); }
+  .stepper .val.empty b { font-weight: 500; }
+  .stepper .val.empty small { font-family: var(--font); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0; margin-top: 4px; }
   textarea { width: 100%; min-height: 64px; resize: vertical; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; padding: var(--sp-3); }
 
   /* "What happened today?" tiles */
@@ -239,7 +248,18 @@
   .stat .bars { display: flex; align-items: flex-end; gap: 2px; height: 26px; margin-top: var(--sp-2); }
   .stat .bars i { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; opacity: .75; min-height: 2px; }
   .stat .bars i.none { background: var(--line); }
-  .insight { background: var(--surface); border: 0; box-shadow: var(--shadow); border-left: 4px solid var(--accent); border-radius: 20px; padding: var(--sp-3); margin-bottom: var(--sp-2); font-size: 15px; }
+  .insight { background: var(--surface); box-shadow: var(--shadow); border-radius: 22px; padding: 14px var(--sp-4); margin-bottom: var(--sp-2); font-size: 15px; }
+  .insight p { margin: 8px 0 4px; }
+  .insight small { color: var(--muted); font-size: var(--fs-xs); }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 700; }
+  .tag.good { background: var(--lime); color: var(--lime-ink); }
+  .tag.watch { background: var(--accent-soft); color: var(--ink); }
+  .empty-state { text-align: center; padding: var(--sp-6) var(--sp-4); margin-top: var(--sp-5); background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+  .empty-state[hidden], #trendsBody[hidden] { display: none; }
+  .empty-ic { width: 56px; height: 56px; margin: 0 auto var(--sp-3); border-radius: 50%; display: grid; place-items: center; background: var(--lime); color: var(--lime-ink); }
+  .empty-state h3 { margin: 0 0 var(--sp-2); font-family: var(--display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: -.01em; }
+  .empty-state p { margin: 0 0 var(--sp-4); color: var(--ink-2); font-size: var(--fs-sm); }
+  .empty-state .btn { margin: 0; }
   .log { background: var(--surface); border: 0; box-shadow: var(--shadow); border-radius: 20px; padding: var(--sp-3); margin-bottom: var(--sp-2); width: 100%; text-align: left; }
   .log .d { font-weight: 600; }
   .log .s { color: var(--muted); font-size: 13px; margin-top: 2px; }
@@ -249,7 +269,16 @@
   .row:first-child { border-radius: var(--r-md) var(--r-md) 0 0; }
   .row:last-child { border-radius: 0 0 var(--r-md) var(--r-md); border-bottom: 1px solid var(--line); }
   .row:only-child { border-radius: var(--r-md); }
-  .row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
+  /* on/off switch */
+  .row input[type=checkbox] { -webkit-appearance: none; appearance: none; flex: none; position: relative; width: 48px; height: 28px; margin: 0;
+    border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; transition: background var(--dur), border-color var(--dur); }
+  .row input[type=checkbox]::before { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform var(--dur) var(--ease); }
+  .row input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  .row input[type=checkbox]:checked::before { transform: translateX(20px); background: var(--surface); }
+  .group-h { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-2); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+  .group-h svg.i { width: 18px; height: 18px; }
+  .group { margin-bottom: var(--sp-2); }
   .row input[type=text] { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; }
   .row .del { color: var(--muted); font-size: 18px; padding: 0 4px 0 12px; min-height: 44px; }
   .btn { display: block; width: 100%; padding: 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); margin-bottom: var(--sp-2); font-weight: 600; }
@@ -265,6 +294,8 @@
     border-radius: 999px; background: var(--lime); color: var(--lime-ink); font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: -.01em;
     margin-bottom: var(--sp-4); box-shadow: var(--shadow);
   }
+  .mic[hidden] { display: none; }
+  .mic { white-space: nowrap; font-size: clamp(15px, 4.4vw, 17px); }
   .mic svg { width: 44px; height: 44px; padding: 11px; border-radius: 50%; background: var(--lime-ink); color: var(--lime); margin-right: auto; }
   .mic::after { content: ''; width: 44px; margin-left: auto; } /* keeps the label centred */
   .voice { background: var(--surface); box-shadow: var(--shadow); border-radius: var(--r-lg); padding: var(--sp-4); margin-bottom: var(--sp-3); }
@@ -346,7 +377,7 @@
   <section class="view on" id="v-today">
     <div class="day">
       <button class="navbtn" id="prev" aria-label="Previous day" data-icon="left"></button>
-      <div class="title"><h1 id="dayTitle">Today</h1><div class="sub" id="daySub"></div></div>
+      <div class="title"><h1 id="dayTitle">Today</h1><div class="sub" id="daySub"></div><button class="today-link" id="toToday" hidden>Back to today</button></div>
       <button class="navbtn" id="next" aria-label="Next day" data-icon="right"></button>
     </div>
     <div class="week" id="week"></div>
@@ -358,7 +389,7 @@
     <div class="voice" id="voice" hidden>
       <div class="status"><i class="pulse off" id="pulse"></i><span id="vStatus">Listening…</span></div>
       <textarea id="vText" placeholder="e.g. “Slept 7 hours, rested okay, stress high, anxiety low, instagram 2 hours, ate well, no alcohol”"></textarea>
-      <div class="hint" id="vHint">Say any of the questions in any order, however you'd naturally put it: <i>“slept 7 hours, kind of stressed, mood same as yesterday, not sure about anxiety, no alcohol”</i>. Changed your mind? Say <i>“actually…”</i>. For behaviours: <i>“flirted a lot”</i>, <i>“strong urge to compare myself but I didn’t”</i>. Say <i>“note”</i> and then anything to save it as your note.</div>
+      <div class="hint" id="vHint">Say it however you like, e.g. <i>“slept 7 hours, kind of stressed, mood same as yesterday, flirted a lot, note long day”</i>. Say <i>“actually…”</i> to correct yourself.</div>
       <div class="actions">
         <button class="btn primary" id="vDone">Done</button>
         <button class="btn" id="vClose">Close</button>
@@ -373,12 +404,20 @@
   <!-- TRENDS -->
   <section class="view" id="v-trends">
     <h1>Trends</h1>
-    <h2>Patterns</h2>
-    <div id="insights"></div>
-    <h2>Last 14 days</h2>
-    <div class="stat-grid" id="stats"></div>
-    <h2>Recent entries</h2>
-    <div id="logs"></div>
+    <div class="empty-state" id="trendsEmpty" hidden>
+      <div class="empty-ic" data-icon="chart"></div>
+      <h3>Your trends will show up here</h3>
+      <p>Check in for a few days to see your averages. After a week or two, you'll also see patterns, like how sleep or scrolling lines up with your mood.</p>
+      <button class="btn primary" id="emptyGo">Check in now</button>
+    </div>
+    <div id="trendsBody">
+      <h2>Patterns</h2>
+      <div id="insights"></div>
+      <h2>Last 14 days</h2>
+      <div class="stat-grid" id="stats"></div>
+      <h2>Recent entries</h2>
+      <div id="logs"></div>
+    </div>
   </section>
 
   <!-- SETTINGS -->
@@ -398,7 +437,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 15 · seamless top</p>
+    <p class="muted" style="text-align:center">Version 16 · polish</p>
   </section>
 </main>
 
@@ -454,7 +493,7 @@ const QUESTIONS = [
   { id: 'productive', label: 'Productivity',            type: 'scale', ui: 'slider', good: 'high', since: '2026-11-18',
     opts: ['Stuck', 'Slow', 'Some done', 'Productive', 'Very productive'],
     means: ['Couldn’t get going on anything', 'Got some things done', 'Did what I wanted, for myself too'] },
-  { id: 'instagram', label: 'Instagram / social media',type: 'scale', opts: ['0', '<30m', '30m–1h', '1–2h', '2h+'], good: 'low' },
+  { id: 'instagram', label: 'Instagram / social media',type: 'scale', opts: ['None', '<30m', '<1h', '1–2h', '2h+'], good: 'low' },
   { id: 'ate',       label: 'Did you eat properly?',   type: 'scale', opts: ['Barely', 'Some meals', 'Yes'], good: 'high' },
   { id: 'water',     label: 'Enough water?',           type: 'scale', opts: ['No', 'A bit', 'Yes'], good: 'high' },
   { id: 'moved',     label: 'Exercise / moved body',   type: 'yesno', good: 'high' },
@@ -467,7 +506,7 @@ const QUESTIONS = [
 ];
 const Q = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
 // Short names for summaries, and the tile + icon used in "What happened today?"
-const SHORT = { sleep: 'sleep', rested: 'rested', mood: 'mood', stress: 'stress', anxiety: 'anxiety', irritable: 'irritability',
+const SHORT = { sleep: 'hours slept', rested: 'rested', mood: 'mood', stress: 'stress', anxiety: 'anxiety', irritable: 'irritability',
   insecure: 'insecurity', energy: 'energy', productive: 'productivity', instagram: 'social media', ate: 'food', water: 'water', moved: 'moved', outside: 'outside',
   social: 'real talk', caffeine: 'late caffeine', alcohol: 'alcohol', meds: 'meds', note: 'note' };
 const TILES = { moved: ['Moved / exercised', 'walk'], outside: ['Went outside', 'tree'], social: ['Real talk', 'chat'],
@@ -515,7 +554,8 @@ document.addEventListener('touchmove', ev => { if (ev.touches.length > 1) ev.pre
 // Behaviours: concrete things you do. Each one is logged as urge → acted on it → triggers,
 // the same split therapy "diary cards" use, so resisting an urge shows up as a win.
 const URGE = ['None', 'Mild', 'Moderate', 'Strong', 'Overwhelming'];
-const DID = ['No', 'Once', 'A few times', 'A lot'];
+const DID = ['No', 'Once', 'A few', 'A lot'];
+const DID_TEXT = ['no', 'once', 'a few times', 'a lot']; // for sentences and summaries
 const TRIGGERS = ['Bored', 'Lonely', 'Anxious', 'Felt rejected', 'Scrolling', 'Tired', 'Drinking', 'After a fight', 'Other'];
 const DEFAULT_BEHAVIORS = [
   { id: 'flirt', name: 'Obsessive flirting' },
@@ -600,6 +640,7 @@ function renderHeader() {
   $('dayTitle').textContent = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString(undefined, { weekday: 'long' });
   $('daySub').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
   $('next').disabled = current >= t;
+  $('toToday').hidden = current === t;
 
   // 7-day strip ending at today (or at the current day if it's further back)
   const end = current < addDays(t, -6) ? addDays(current, 3) : t;
@@ -656,7 +697,7 @@ function summary(s, e) {
       else if (it.fields.every(q => e[q.id] === 0)) parts.push('none of the habits');
     } else {
       const [fu, fd] = it.fields, u = e[fu.id], d = e[fd.id], nm = it.b.name.toLowerCase();
-      if (d > 0) parts.push(`${nm}: ${DID[d].toLowerCase()}`);
+      if (d > 0) parts.push(`${nm}: ${DID_TEXT[d]}`);
       else if (u > 0 && d === 0) parts.push(`${nm}: resisted 💪`);
       else if (u === 0) parts.push(`${nm}: no urge`);
       else if (isUnsure(e, fu.id)) parts.push(`${nm}: not sure`);
@@ -665,7 +706,8 @@ function summary(s, e) {
   return parts.join(' · ');
 }
 
-// Section open/closed state: undefined = automatic (open until complete), true/false = you chose.
+// Section open/closed state: undefined = automatic (only the first unfinished section is open),
+// true/false = you chose, 'jump' = opened by a jump (still folds itself away once finished).
 let secOpen = {}, secDay = null, prevDone = null, hintFor = null;
 const justDone = new Set();
 const HINT_KEY = 'lj.sliderHint.v1';
@@ -675,14 +717,16 @@ function renderForm() {
   const e = entry(), secs = layout();
   // A section you just finished stays open for a moment, then folds away.
   const doneNow = new Set(secs.filter(s => s.fields.length && s.fields.every(x => answered(e, x))).map(s => s.id));
-  if (prevDone) for (const id of doneNow) if (!prevDone.has(id) && secOpen[id] === undefined) foldSoon(id);
+  if (prevDone) for (const id of doneNow) if (!prevDone.has(id) && secOpen[id] !== true && secOpen[id] !== false) foldSoon(id);
+  const firstOpen = (secs.find(s => !doneNow.has(s.id)) || {}).id;
   prevDone = doneNow;
   // Show the "tap or drag" slider hint once, on the first unanswered slider, until you've used one.
   hintFor = load(HINT_KEY, false) ? null
     : (secs.flatMap(s => s.fields).find(x => x.ui === 'slider' && !answered(e, x)) || {}).id;
   for (const s of secs) {
     const n = s.fields.filter(x => answered(e, x)).length, done = doneNow.has(s.id);
-    const open = secOpen[s.id] ?? (!done || justDone.has(s.id));
+    const choice = secOpen[s.id];
+    const open = choice === false ? false : choice ? true : (s.id === firstOpen || justDone.has(s.id));
     const sub = done || (!open && n) ? summary(s, e) : s.fields.length ? `${n} of ${s.fields.length} answered` : 'Optional';
     const sec = document.createElement('section');
     sec.className = 'sec' + (open ? ' open' : '') + (done ? ' done' : ''); sec.dataset.sec = s.id;
@@ -705,24 +749,26 @@ function foldSoon(id) {
     if (document.querySelector('.sl.dragging')) return setTimeout(fold, 400); // don't redraw mid-drag
     justDone.delete(id);
     const el = document.querySelector(`.sec[data-sec="${id}"]`);
-    if (!el || secOpen[id] !== undefined) return refresh();
+    if (!el || secOpen[id] === true || secOpen[id] === false) return refresh();
+    delete secOpen[id];
     el.classList.remove('open'); // animate the fold, then redraw
     setTimeout(() => {
       refresh();
-      const h = document.querySelector(`.sec[data-sec="${id}"]`);
-      if (h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // bring the next section (now open) into view
+      const next = document.querySelector('.sec.open') || document.getElementById('finish');
+      if (next) { const r = next.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * .55) next.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }, 200);
   }, 900);
 }
 function questionCard(q, e) {
   const card = document.createElement('div'); card.className = 'q'; card.dataset.id = q.id;
   const lab = document.createElement('div'); lab.className = 'label';
-  lab.innerHTML = `<span>${esc(q.label)}</span>`;
+  lab.innerHTML = `<span class="lab-t"><span>${esc(q.label)}</span></span>`;
   card.appendChild(lab);
   if (q.ui === 'slider') {
     const y = entries[addDays(current, -1)]?.[q.id];
+    if (y !== undefined) lab.firstChild.insertAdjacentHTML('beforeend', `<small class="yday">yesterday: ${esc(q.opts[y].toLowerCase())}</small>`);
     const r = document.createElement('span'); r.className = 'lab-r';
-    if (y !== undefined) r.innerHTML = `<small class="yday">yesterday: ${esc(q.opts[y].toLowerCase())}</small>`;
     lab.appendChild(r);
     card.appendChild(sliderControl(q, e, null, r));
   } else if (q.type === 'hours') {
@@ -732,7 +778,8 @@ function questionCard(q, e) {
     const plus  = Object.assign(document.createElement('button'), { textContent: '+', ariaLabel: 'More sleep' });
     const val = document.createElement('button');
     val.className = 'val' + (v === undefined ? ' empty' : '');
-    val.textContent = v === undefined ? `Tap to set (${lastSleep()}h)` : `${v}h`;
+    if (v === undefined) val.innerHTML = `<b>${lastSleep()}h</b><small>tap to confirm</small>`; else val.textContent = `${v}h`;
+    val.setAttribute('aria-label', v === undefined ? `Confirm ${lastSleep()} hours` : `${v} hours`);
     const set = n => { setValue(q.id, Math.max(0, Math.min(16, n))); refresh(); };
     minus.onclick = () => set((e[q.id] ?? lastSleep()) - 0.5);
     plus.onclick  = () => set((e[q.id] ?? lastSleep()) + 0.5);
@@ -742,7 +789,11 @@ function questionCard(q, e) {
     const ta = document.createElement('textarea');
     ta.placeholder = 'Optional';
     ta.value = e[q.id] || '';
-    let t; ta.oninput = () => { clearTimeout(t); t = setTimeout(() => { setValue(q.id, ta.value.trim()); renderHeader(); }, 400); };
+    const saved = document.createElement('small'); saved.className = 'saved'; saved.textContent = 'Saved'; lab.appendChild(saved);
+    let t, t2; ta.oninput = () => { clearTimeout(t); t = setTimeout(() => {
+      setValue(q.id, ta.value.trim()); renderHeader();
+      saved.classList.add('on'); clearTimeout(t2); t2 = setTimeout(() => saved.classList.remove('on'), 1500);
+    }, 400); };
     card.appendChild(ta);
   } else {
     const opts = q.type === 'yesno' ? ['No', 'Yes'] : q.opts;
@@ -786,7 +837,9 @@ function habitsCard(e) {
 }
 function renderFinish(secs, e) {
   const el = $('finish'), all = secs.flatMap(s => s.fields);
-  if (!all.length || all.some(f => !answered(e, f))) { el.hidden = true; return; }
+  const finished = all.length > 0 && !all.some(f => !answered(e, f));
+  $('micBtn').hidden = finished;
+  if (!finished) { el.hidden = true; return; }
   el.hidden = false;
   const when = current === todayIso() ? 'See you tomorrow.' : `Saved for ${parse(current).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}.`;
   el.innerHTML = `<div class="ck">${icon('check')}</div><h3>Check-in done</h3><p class="muted">${esc(when)}</p>
@@ -799,7 +852,7 @@ function renderPill(secs, e) {
   const pill = $('pill'), all = secs.flatMap(s => s.fields), missing = all.filter(f => !answered(e, f));
   if (!$('v-today').classList.contains('on') || !missing.length) { pill.hidden = true; pill.dataset.card = ''; return; }
   const nx = missing[0];
-  const name = nx.beh ? nx.beh.name : nx.type === 'yesno' ? 'What happened today' : cap(nx.short || nx.label);
+  const name = nx.beh ? nx.beh.name : nx.type === 'yesno' ? 'What happened today' : nx.label.replace(/\?$/, '');
   pill.hidden = false;
   pill.setAttribute('aria-label', `${all.length - missing.length} of ${all.length} answered. Go to next: ${name}`);
   pill.innerHTML = `<span class="n">${all.length - missing.length} of ${all.length}</span><span class="next">Next: ${esc(name)}</span>${icon('chev')}`;
@@ -821,7 +874,7 @@ addEventListener('scroll', () => { if (!pillTick) { pillTick = true; requestAnim
 function jumpTo(id) {
   const cid = cardIdFor(id);
   const s = layout().find(s => s.items.some(it => it.card === cid));
-  if (s) delete secOpen[s.id]; // back to automatic: an unfinished section opens
+  if (s && secOpen[s.id] !== true) secOpen[s.id] = 'jump'; // open it; it still folds away once finished
   refresh();
   const c = document.querySelector(`.q[data-id="${cid}"]`);
   if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 1400); }
@@ -974,6 +1027,7 @@ function refresh() {
 }
 function go(day) { if (day > todayIso()) return; current = day; refresh(); }
 $('prev').onclick = () => go(addDays(current, -1));
+$('toToday').onclick = () => go(todayIso());
 $('next').onclick = () => go(addDays(current, 1));
 
 // ---------- Voice check-in ----------
@@ -1103,8 +1157,12 @@ $('vClose').onclick = () => {
 };
 
 // ---------- Trends view ----------
+let showAllLogs = false;
 function renderTrends() {
   const t = todayIso();
+  const logged = Object.keys(entries).length;
+  $('trendsEmpty').hidden = logged > 0; $('trendsBody').hidden = logged === 0;
+  if (!logged) return;
   const days = Array.from({ length: 14 }, (_, i) => addDays(t, i - 13));
   const st = $('stats'); st.innerHTML = '';
   for (const b of behaviors) {
@@ -1138,7 +1196,7 @@ function renderTrends() {
     const bars = vals.map(v => v === undefined ? '<i class="none"></i>'
       : `<i style="height:${Math.max(8, (v / (max || 1)) * 100)}%"></i>`).join('');
     const el = document.createElement('div'); el.className = 'stat';
-    el.innerHTML = `<div class="k">${q.label}</div><div class="v">${shown}</div><div class="bars">${bars}</div>`;
+    el.innerHTML = `<div class="k">${esc(q.tile || cap(q.short))}</div><div class="v">${shown}</div><div class="bars">${bars}</div>`;
     st.appendChild(el);
   }
 
@@ -1167,16 +1225,16 @@ function renderTrends() {
     { name: 'felt stuck',           test: e => e.productive !== undefined ? e.productive <= 1 : null, ids: ['productive'] },
   ].filter(c => c.ids.every(id => !hidden.includes(id)));
 
-  const found = [];
+  const found = [], MIN_DAYS = 5; // need at least 5 days on each side before calling it a pattern
   for (const b of behaviors) for (const c of [...conditions, ...states]) {
     const yes = [], no = [];
     for (const e of all) { const r = c.test(e), a = actedOn(b)(e); if (r === null || a === null) continue; (r ? yes : no).push(a ? 1 : 0); }
-    if (yes.length < 3 || no.length < 3) continue;
+    if (yes.length < MIN_DAYS || no.length < MIN_DAYS) continue;
     const pct = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100);
     const diff = pct(yes) - pct(no);
     if (Math.abs(diff) < 30) continue;
-    found.push({ size: Math.abs(diff) / 25, better: diff < 0, text:
-      `On days you <b>${c.name}</b>, you acted on <b>${esc(b.name.toLowerCase())}</b> on ${pct(yes)}% of days vs ${pct(no)}% otherwise.` });
+    found.push({ size: Math.abs(diff) / 25, better: diff < 0, outcome: 'b:' + b.id, cond: c.name, n: yes.length + no.length, text:
+      `On days you <b>${c.name}</b>, you acted on <b>${esc(b.name.toLowerCase())}</b> on ${pct(yes)}% of days, vs ${pct(no)}% otherwise.` });
   }
   // ...and how acting on a behaviour lines up with how you feel.
   conditions.push(...behaviors.map(b => ({ name: `acted on “${esc(b.name.toLowerCase())}”`, test: actedOn(b) })));
@@ -1187,25 +1245,33 @@ function renderTrends() {
       const r = c.test(e); if (r === null || e[f] === undefined) continue;
       (r ? yes : no).push(e[f]);
     }
-    if (yes.length < 3 || no.length < 3) continue;
+    if (yes.length < MIN_DAYS || no.length < MIN_DAYS) continue;
     const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
     const diff = avg(yes) - avg(no);
     if (Math.abs(diff) < 0.6) continue;           // only show meaningful gaps (on a 0–4 scale)
     const fq = Q[f];
     const better = (fq.good === 'high') === (diff > 0);
-    found.push({ size: Math.abs(diff), better, text:
-      `On days you <b>${c.name}</b>, your ${fq.label.toLowerCase()} was usually <b>${fq.opts[Math.round(avg(yes))].toLowerCase()}</b> vs <b>${fq.opts[Math.round(avg(no))].toLowerCase()}</b> otherwise.` });
+    found.push({ size: Math.abs(diff), better, outcome: f, cond: c.name, n: yes.length + no.length, text:
+      `On days you <b>${c.name}</b>, ${f === 'rested' ? 'you usually felt' : `your ${esc(fq.short)} was usually`} <b>${fq.opts[Math.round(avg(yes))].toLowerCase()}</b>, vs <b>${fq.opts[Math.round(avg(no))].toLowerCase()}</b> otherwise.` });
   }
+  // Strongest first, at most 3, and never two about the same thing.
   found.sort((a, b) => b.size - a.size);
+  const picked = [], seenOut = new Set(), seenCond = new Set();
+  for (const x of found) {
+    if (picked.length >= 3) break;
+    if (seenOut.has(x.outcome) || seenCond.has(x.cond)) continue;
+    seenOut.add(x.outcome); seenCond.add(x.cond); picked.push(x);
+  }
   const ins = $('insights');
-  ins.innerHTML = found.length
-    ? found.slice(0, 6).map(x => `<div class="insight" style="border-left-color:var(${x.better ? '--good' : '--bad'})">${x.text}</div>`).join('')
-    : `<p class="muted">Patterns appear after about a week or two of check-ins. ${Object.keys(entries).length} day(s) logged so far.</p>`;
+  ins.innerHTML = picked.length
+    ? picked.map(x => `<div class="insight"><span class="tag ${x.better ? 'good' : 'watch'}">${x.better ? 'Seems to help' : 'Worth noticing'}</span>
+        <p>${x.text}</p><small>Based on ${x.n} days</small></div>`).join('')
+    : `<p class="muted">Patterns appear after about two weeks of check-ins. ${logged} ${logged === 1 ? 'day' : 'days'} logged so far.</p>`;
 
   // Recent log
   const logs = $('logs'); logs.innerHTML = '';
-  const recent = Object.keys(entries).sort().reverse().slice(0, 30);
-  if (!recent.length) logs.innerHTML = '<p class="muted">No entries yet.</p>';
+  const allDays = Object.keys(entries).sort().reverse();
+  const recent = showAllLogs ? allDays : allDays.slice(0, 7);
   for (const d of recent) {
     const e = entries[d];
     const bits = [];
@@ -1213,7 +1279,7 @@ function renderTrends() {
     for (const id of ['mood', 'stress', 'anxiety']) if (e[id] !== undefined) bits.push(`${Q[id].label.toLowerCase().replace('overall ', '')}: ${Q[id].opts[e[id]].toLowerCase()}`);
     for (const be of behaviors) {
       const did = e[be.id + '_did'], urge = e[be.id + '_urge'];
-      if (did > 0) bits.push(`${be.name.toLowerCase()}: ${DID[did].toLowerCase()}`);
+      if (did > 0) bits.push(`${be.name.toLowerCase()}: ${DID_TEXT[did]}`);
       else if (urge > 0 && did === 0) bits.push(`resisted ${be.name.toLowerCase()} 💪`);
     }
     const b = document.createElement('button'); b.className = 'log';
@@ -1222,7 +1288,14 @@ function renderTrends() {
     b.onclick = () => { go(d); show('today'); };
     logs.appendChild(b);
   }
+  if (allDays.length > 7) {
+    const more = document.createElement('button'); more.className = 'btn';
+    more.textContent = showAllLogs ? 'Show fewer' : `Show all ${allDays.length} days`;
+    more.onclick = () => { showAllLogs = !showAllLogs; renderTrends(); };
+    logs.appendChild(more);
+  }
 }
+$('emptyGo').onclick = () => show('today');
 
 // ---------- Settings view ----------
 function saveBehaviors() { save(BEH_KEY, behaviors); }
@@ -1252,14 +1325,20 @@ $('behNew').onkeydown = ev => { if (ev.key === 'Enter') $('behAdd').click(); };
 function renderSettings() {
   renderBehaviors();
   const t = $('toggles'); t.innerHTML = '';
-  for (const q of QUESTIONS) {
-    const row = document.createElement('label'); row.className = 'row';
-    row.innerHTML = `<span>${q.label}</span><input type="checkbox" ${hidden.includes(q.id) ? '' : 'checked'}>`;
-    row.querySelector('input').onchange = ev => {
-      hidden = ev.target.checked ? hidden.filter(x => x !== q.id) : [...hidden, q.id];
-      save(HIDE_KEY, hidden);
-    };
-    t.appendChild(row);
+  for (const sec of SECTIONS.filter(x => x.ids)) {
+    const ids = sec.ids.flatMap(id => id === 'habits' ? QUESTIONS.filter(q => q.type === 'yesno').map(q => q.id) : [id]);
+    t.insertAdjacentHTML('beforeend', `<div class="group-h">${icon(sec.icon)}${esc(sec.title)}</div>`);
+    const group = document.createElement('div'); group.className = 'group';
+    for (const q of ids.map(id => Q[id]).filter(Boolean)) {
+      const row = document.createElement('label'); row.className = 'row';
+      row.innerHTML = `<span>${esc(q.label)}</span><input type="checkbox" role="switch" ${hidden.includes(q.id) ? '' : 'checked'}>`;
+      row.querySelector('input').onchange = ev => {
+        hidden = ev.target.checked ? hidden.filter(x => x !== q.id) : [...hidden, q.id];
+        save(HIDE_KEY, hidden);
+      };
+      group.appendChild(row);
+    }
+    t.appendChild(group);
   }
 }
 function download(name, text, type) {

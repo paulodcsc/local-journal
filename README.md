@@ -5,7 +5,7 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
 **What it tracks:** hours slept, how rested you feel, mood, stress, anxiety, irritability, insecurity, energy, productivity (overall, not just work), Instagram/social media time, eating, water, exercise, daylight, real conversations, late caffeine, alcohol, medication (off by default), and an optional one-line note.
 
 - **Check-in tab:** questions are grouped into **Sleep · Feelings · Behaviours · Your day**.
-  - Each section shows its progress and folds into a one-line summary once it's answered, so the page gets shorter as you go.
+  - Only the section you're on is open. When you finish it, it folds into a one-line summary and the next one opens. Tap any header to open it yourself.
   - The yes/no habits share one **"What happened today?"** card: tap what happened, then **That's all** marks the rest as No.
   - A floating pill (*"12 of 20 · Next: Energy"*) jumps to the next unanswered question.
   - A **Check-in done** card sums up the day when you finish.
