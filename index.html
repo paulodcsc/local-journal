@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Daily Check-in</title>
 <meta name="description" content="A tap-only daily mental health journal. Data stays on your device.">
-<meta name="theme-color" content="#e6ddd3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1b1613" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e9e1d7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#211a16" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Check-in">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preload" href="fonts/sora.woff2" as="font" type="font/woff2" crossorigin>
@@ -58,9 +60,15 @@
 
   /* ---------- Base ---------- */
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { background: var(--bg); }
+  html { background: var(--bg); overscroll-behavior-y: none; }
+  body { overscroll-behavior-y: none; }
   body { margin: 0; color: var(--ink); background: transparent; }
-  body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--aura); }
+  /* The glow is taller than the screen so a bounce or a sliding browser bar never shows its edge. */
+  body::before { content: ''; position: fixed; left: 0; right: 0; top: -25vh; height: 150vh; z-index: -1; pointer-events: none;
+    background: radial-gradient(45% 21.3% at 12% 20.7%, var(--blob-1), transparent 72%),
+                radial-gradient(42% 22.7% at 96% 35.3%, var(--blob-2), transparent 72%),
+                radial-gradient(55% 25.3% at 25% 64.7%, var(--blob-2), transparent 72%),
+                radial-gradient(50% 26.7% at 92% 83.3%, var(--blob-3), transparent 72%), var(--bg); }
   /* No double-tap zoom (also removes the tap delay). Sliders keep their own pan-y. */
   html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   input, textarea, select { font-size: max(16px, 1em); } /* below 16px, iPhone zooms in when you focus a field */
@@ -389,7 +397,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 13 · simple bee</p>
+    <p class="muted" style="text-align:center">Version 14 · background fix</p>
   </section>
 </main>
 
