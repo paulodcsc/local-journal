@@ -224,6 +224,28 @@
   const afterCorrection = seg => { const c = seg.lastIndexOf('CORR'); return c < 0 ? seg : seg.slice(c + 1); };
 
   // ---------------------------------------------------------------------------------------------
+  // Speech recognisers often mishear short words ("high" → "hi", "hey", "I"). Fix the usual ones
+  // before parsing. SOUNDALIKE is safe anywhere; SHORT_FIX only when the whole answer is that word.
+  const SOUNDALIKE = [
+    [/\b(?:hi|hey|hai|hy|hiya|heigh|hight|hie|hii)\b/g, 'high'],
+    [/\b(?:lo|loh|lowe)\b/g, 'low'],
+    [/\b(?:ones|once's)\b/g, 'once'],
+    [/\b(?:allot|alot|a lots)\b/g, 'a lot'],
+    [/\b(?:okey|okie|okey dokey)\b/g, 'okay'],
+    [/\b(?:grate)\b/g, 'great'],
+    [/\b(?:none's|nun)\b/g, 'none'],
+  ];
+  const SHORT_FIX = { i: 'high', eye: 'high', aye: 'high', ai: 'high', 'i think high': 'high',
+    mile: 'mild', miles: 'mild', myld: 'mild', media: 'medium', 'me de um': 'medium', 'medium um': 'medium', law: 'low', bed: 'bad', bat: 'bad',
+    won: 'one', to: 'two', too: 'two', tree: 'three', free: 'three', for: 'four', fore: 'four', fine: 'fine', strung: 'strong', wants: 'once' };
+  const PT_SHORT_FIX = { auto: 'alto', auta: 'alta', baxo: 'baixo', baxa: 'baixa', medo: 'medio', 'meio auto': 'meio alto' };
+  const fixSoundalikes = t => SOUNDALIKE.reduce((acc, [re, w]) => acc.replace(re, w), t.toLowerCase());
+  // A rough "how it sounds" key: drops silent gh, merges vowels and soft letters ("high", "hi", "hey" → "h").
+  const soundKey = w => w.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter(Boolean).map(x => x
+    .replace(/gh/g, '').replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/([a-z])\1+/g, '$1')
+    .replace(/^[aeiouy]+/, 'a').replace(/(?!^)[aeiouywh]+/g, '')).join(' ');
+
+  // ---------------------------------------------------------------------------------------------
   // Brazilian Portuguese: accents are stripped, then common answers are rewritten into the English
   // words the rest of the parser already understands ("meio alto" → "medium high", "sete e meia" →
   // "seven and a half", "não sei" → "not sure"). Order matters: longer phrases first.
@@ -305,7 +327,7 @@
   ];
   const stripAccents = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '');
   function ptToEn(text) {
-    let t = ' ' + stripAccents(text.toLowerCase()).replace(/[’`]/g, "'").replace(/([.,;!?])/g, ' $1 ') + ' ';
+    let t = ' ' + stripAccents(text.toLowerCase()).replace(/\bauto\b/g, 'alto').replace(/\bauta\b/g, 'alta').replace(/[’`]/g, "'").replace(/([.,;!?])/g, ' $1 ') + ' ';
     for (const [re, en] of PT) t = t.replace(re, en);
     return t.replace(/\s+/g, ' ').trim();
   }
@@ -323,6 +345,7 @@
     const noteMatch = pt ? stripAccents(text.toLowerCase()).match(/\b(?:nota|anotacao|anotar|anota)\b[:,]?\s*/) : text.match(/\b(?:note|notes|diary|journal)\b[:,]?\s*/i);
     if (noteMatch) { note = text.slice(noteMatch.index + noteMatch[0].length).trim() || null; text = text.slice(0, noteMatch.index); }
     if (pt) text = ptToEn(text);
+    text = fixSoundalikes(text);
 
     const toks = tokens(text);
     const hits = []; // {id, i, word}
@@ -485,7 +508,23 @@
   }
   function answer(text, ctx) {
     const original = text.trim();
+    const whole = stripAccents(original.toLowerCase()).replace(/[^a-z0-9' ]/g, '').trim();
+    if (ctx.type !== 'note') {
+      if (ctx.lang === 'pt' && PT_SHORT_FIX[whole]) text = PT_SHORT_FIX[whole];
+      else if (ctx.lang !== 'pt' && SHORT_FIX[whole] && ctx.type !== 'yesno') text = SHORT_FIX[whole];
+    }
     if (ctx.lang === 'pt') text = ptToEn(text);
+    if (ctx.type !== 'note') text = fixSoundalikes(text);
+    const res = answerInner(text, ctx, original);
+    if (res || ctx.type === 'note' || !ctx.labels) return res;
+    // Nothing matched: if it *sounds* like exactly one of the options, take that one.
+    const said = soundKey(text);
+    if (!said) return null;
+    const hits = ctx.labels.map((l, i) => [soundKey(l), i]).filter(([k]) => k && k === said);
+    if (hits.length === 1 && ctx.type !== 'multi') return { value: hits[0][1], fuzzy: true };
+    return null;
+  }
+  function answerInner(text, ctx, original) {
     const raw = clean(text), words = raw.trim().split(' ').filter(Boolean), short = words.length <= 4;
     if (!raw.trim()) return null;
     // Commands (only when the reply is short, so "I couldn't stop…" isn't "stop")

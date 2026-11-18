@@ -33,6 +33,10 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
 - **Trends tab:** 14-day averages, plus *patterns* once you have about 1–2 weeks of data (e.g. "On days you used social media 1h+, your mood was usually poor vs good otherwise").
 - **Settings tab:** switch off questions you don't care about, export to CSV/JSON, and import a backup.
 
+### When voice mishears
+
+Speech recognition often hears short words wrong, like "high" as "hi", "hey" or "I". The app corrects the usual mistakes ("hi" becomes high, "lo" low, "mile" mild, "ones" once, and "auto" alto in Portuguese). If nothing matches, it picks the option that *sounds* like what it heard, but only when exactly one fits. The green bubble always shows what it chose (*"hi" → High*), and you can also answer with a number from 1 to 5.
+
 ### Voice in Portuguese (pt-BR)
 
 Settings → **Voice**: *Auto* (follows your phone), *English* or *Português*. In Portuguese, the guided voice check-in asks the questions in Portuguese, shows Portuguese options and listens in pt-BR. It understands answers like *"meio alto"*, *"mais ou menos"*, *"sete e meia"*, *"igual a ontem"*, *"não sei"*, *"pular"*, *"voltar"* and *"me mexi e saí"*. "Say everything at once" works in Portuguese too, e.g. *"dormi oito horas, estresse meio alto, humor bom, nota: dia longo"*. Notes keep your exact words. The rest of the app stays in English for now.

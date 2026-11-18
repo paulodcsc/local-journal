@@ -235,7 +235,12 @@ function handleSpeech(alts) {
     if (G.retries >= 3) { G.paused = true; setMic(T('Didn’t catch that. Tap an answer, or the mic to try again.', 'Não entendi. Toque numa resposta, ou no microfone pra tentar de novo.')); return; }
     setMic(T('Didn’t catch that. Try one of the options.', 'Não entendi. Tente uma das opções.')); return listen(true);
   }
-  showHeard(`“${heard}”`, res.noPrev ? 'bad' : 'ok');
+  // show what it understood, e.g. “hi” → High, so a mishearing is obvious right away
+  const D = dispLabels(s);
+  const picked = res.value === undefined ? '' : s.type === 'hours' ? `${res.value}h`
+    : Array.isArray(res.value) ? (res.value.length ? res.value.map(x => D[labelsFor(s).indexOf(x)] || x).join(', ') : T('none', 'nada'))
+    : s.type === 'note' ? '' : D[res.value];
+  showHeard(`“${heard}”${picked && picked.toLowerCase() !== heard.toLowerCase().trim() ? ' → ' + picked : ''}`, res.noPrev ? 'bad' : 'ok');
   if (res.cmd === 'skip') return goNext();
   if (res.cmd === 'back') return goBack();
   if (res.cmd === 'repeat') return ask();
@@ -346,8 +351,8 @@ function render() {
         ? opt(i, o[i], `<small>${esc(means[i / 2])}${ytag(i)}</small>`)
         : opt(i, o[i], `<small>${T('in between', 'entre os dois')}${ytag(i)}</small>`, 'mid')).join('') + `</div>`;
       if (unsure) html += `<div class="g-y">${T('Marked as not sure.', 'Marcado como não sei.')}</div>`;
-      hint = T(`Say “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” or “${o[4].toLowerCase()}”, or in between like “${o[1].toLowerCase()}”.`,
-        `Diga “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” ou “${o[4].toLowerCase()}”, ou algo entre, como “${o[1].toLowerCase()}”.`);
+      hint = T(`Say “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” or “${o[4].toLowerCase()}”, or in between like “${o[1].toLowerCase()}”. Or a number from 1 to 5.`,
+        `Diga “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” ou “${o[4].toLowerCase()}”, ou algo entre, como “${o[1].toLowerCase()}”. Ou um número de 1 a 5.`);
       break;
     }
     case 'hours': {

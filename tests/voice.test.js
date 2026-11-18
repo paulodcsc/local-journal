@@ -90,6 +90,10 @@ const cases = [
   ['urge to flirt', { flirt_urge: 2 }, B],
   ['checked his profile twice, mood bad', { bx_did: 2, mood: 0 }, B],
   ['slept 6 hours, flirted, felt insecure', { sleep: 6, flirt_did: 1, insecure: 2 }, B],
+  // common mishearings in free-form
+  ['stress hi, mood lo', { stress: 4, mood: 1 }],
+  ['anxiety very hi', { anxiety: 4 }],
+  ['flirted allot', { flirt_did: 3 }, B],
   // Portuguese (pt-BR)
   ['dormi sete e meia, estresse alto, humor mais ou menos', { sleep: 7.5, stress: 4, mood: 2 }, { lang: 'pt' }],
   ['um pouco ansiosa', { anxiety: 1 }, { lang: 'pt' }],
@@ -101,6 +105,7 @@ const cases = [
   ['me mexi e saí de casa', { moved: 1, outside: 1 }, { lang: 'pt' }],
   ['redes sociais duas horas', { instagram: 4 }, { lang: 'pt' }],
   ['produtividade alta', { productive: 4 }, { lang: 'pt' }],
+  ['estresse auto', { stress: 4 }, { lang: 'pt' }],
   ['flertei muito', { flirt_did: 3 }, { lang: 'pt', behaviors: B }],
   ['tive vontade forte de flertar mas não flertei', { flirt_urge: 3, flirt_did: 0 }, { lang: 'pt', behaviors: B }],
   ['me comparei algumas vezes', { compare_did: 2 }, { lang: 'pt', behaviors: B }],

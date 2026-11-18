@@ -44,9 +44,18 @@ const cases = [
   ['skip', S, { cmd: 'skip' }], ['next', { type: 'yesno' }, { cmd: 'skip' }], ['go back', S, { cmd: 'back' }], ['back', M, { cmd: 'back' }],
   ['repeat', S, { cmd: 'repeat' }], ['stop', S, { cmd: 'stop' }], ["that's all", S, { cmd: 'stop' }], ["I'm done", { type: 'yesno' }, { cmd: 'stop' }],
   ['not sure', { type: 'yesno' }, { cmd: 'skip' }], ['banana', S, null],
+  // common mishearings
+  ['hi', S, { value: 4 }], ['Hi.', S, { value: 4 }], ['hey', S, { value: 4 }], ['I', S, { value: 4 }], ['eye', S, { value: 4 }],
+  ['very hi', S, { value: 4 }], ['quite hi', S, { value: 3 }], ['pretty hi', S, { value: 3 }], ['lo', S, { value: 0 }],
+  ['mile', S, { value: 1 }], ['media', S, { value: 2 }], ['for', S, { value: 3 }], ['to', S, { value: 1 }],
+  ['hi', { type: 'slider', kind: 'quality', labels: ENERGY }, { value: 4 }],
+  ['ones', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 1 }],
+  ['allot', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 3 }],
+  ['I', { type: 'yesno' }, null],
+  ['hi', { type: 'note' }, { value: 'hi' }],
   // Portuguese (pt-BR)
   ...[
-    ['alto', S, { value: 4 }], ['meio alto', S, { value: 3 }], ['médio', S, { value: 2 }], ['leve', S, { value: 1 }], ['baixo', S, { value: 0 }],
+    ['alto', S, { value: 4 }], ['auto', S, { value: 4 }], ['meio auto', S, { value: 3 }], ['baxo', S, { value: 0 }], ['meio alto', S, { value: 3 }], ['médio', S, { value: 2 }], ['leve', S, { value: 1 }], ['baixo', S, { value: 0 }],
     ['um pouco', S, { value: 1 }], ['muito', S, { value: 4 }], ['igual a ontem', { ...S, prev: 2 }, { value: 2 }], ['não sei', S, { unsure: true }],
     ['bom', M, { value: 3 }], ['ótimo', M, { value: 4 }], ['ruim', M, { value: 0 }], ['mais ou menos', M, { value: 2 }], ['não muito bom', M, { value: 1 }],
     ['forte', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['nenhuma', { type: 'slider', kind: 'urge', labels: URGE }, { value: 0 }],
