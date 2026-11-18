@@ -60,7 +60,7 @@
 
   /* ---------- Base ---------- */
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { background: var(--bg); overscroll-behavior-y: none; }
+  html { background: var(--bg); overscroll-behavior-y: none; overflow-anchor: none; } /* the app keeps your place itself */
   body { overscroll-behavior-y: none; }
   body { margin: 0; color: var(--ink); background: transparent; }
   /* The glow is taller than the screen so a bounce or a sliding browser bar never shows its edge. */
@@ -169,8 +169,6 @@
   .tile.yes { background: var(--accent-soft); border-color: var(--accent); }
   .tile.yes .i, .tile.yes .st { color: var(--accent); }
   .tile.no { background: transparent; border-color: var(--line); color: var(--muted); font-weight: 500; }
-  .tiles-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--muted); min-height: 36px; }
-  .btn-sm { padding: 8px 16px; border-radius: 20px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: var(--fs-sm); }
 
   /* Behaviours */
   .sublabel { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); font-weight: 600; color: var(--muted); margin: var(--sp-4) 0 var(--sp-2); min-height: 32px; }
@@ -493,7 +491,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 17 · voice motion</p>
+    <p class="muted" style="text-align:center">Version 18 · calmer</p>
   </section>
 </main>
 
@@ -549,7 +547,8 @@ const QUESTIONS = [
   { id: 'productive', label: 'Productivity',            type: 'scale', ui: 'slider', good: 'high', since: '2026-11-18',
     opts: ['Stuck', 'Slow', 'Some done', 'Productive', 'Very productive'],
     means: ['Couldn’t get going on anything', 'Got some things done', 'Did what I wanted, for myself too'] },
-  { id: 'instagram', label: 'Instagram / social media',type: 'scale', opts: ['None', '<30m', '<1h', '1–2h', '2h+'], good: 'low' },
+  { id: 'instagram', label: 'Instagram / social media',type: 'scale', ui: 'slider', good: 'low',
+    opts: AMOUNT5, means: ['Barely, or not at all', 'Some scrolling, but in control', 'Way more than I wanted'] },
   { id: 'ate',       label: 'Did you eat properly?',   type: 'scale', opts: ['Barely', 'Some meals', 'Yes'], good: 'high' },
   { id: 'water',     label: 'Enough water?',           type: 'scale', opts: ['No', 'A bit', 'Yes'], good: 'high' },
   { id: 'moved',     label: 'Exercise / moved body',   type: 'yesno', good: 'high' },
@@ -567,7 +566,11 @@ const SHORT = { sleep: 'hours slept', rested: 'rested', mood: 'mood', stress: 's
   social: 'real talk', caffeine: 'late caffeine', alcohol: 'alcohol', meds: 'meds', note: 'note' };
 const TILES = { moved: ['Moved / exercised', 'walk'], outside: ['Went outside', 'tree'], social: ['Real talk', 'chat'],
   caffeine: ['Caffeine after 2pm', 'cup'], alcohol: ['Alcohol', 'glass'], meds: ['Took meds', 'pill'] };
-for (const q of QUESTIONS) { q.short = SHORT[q.id] || q.label.toLowerCase(); if (TILES[q.id]) [q.tile, q.icon] = TILES[q.id]; }
+for (const q of QUESTIONS) {
+  q.short = SHORT[q.id] || q.label.toLowerCase();
+  if (TILES[q.id]) [q.tile, q.icon] = TILES[q.id];
+  if (q.type === 'yesno') q.optional = true; // habits default to "no": tap the ones you did
+}
 
 // The check-in page is grouped into sections that fold away once answered.
 const SECTIONS = [
@@ -750,7 +753,7 @@ function summary(s, e) {
     } else if (it.kind === 'habits') {
       const yes = it.fields.filter(q => e[q.id] === 1).map(q => q.tile.toLowerCase());
       if (yes.length) parts.push(yes.join(', '));
-      else if (it.fields.every(q => e[q.id] === 0)) parts.push('none of the habits');
+      else if (it.fields.some(q => e[q.id] === 0)) parts.push('none of the habits');
     } else {
       const [fu, fd] = it.fields, u = e[fu.id], d = e[fd.id], nm = it.b.name.toLowerCase();
       if (d > 0) parts.push(`${nm}: ${DID_TEXT[d]}`);
@@ -762,27 +765,26 @@ function summary(s, e) {
   return parts.join(' · ');
 }
 
-// Section open/closed state: undefined = automatic (only the first unfinished section is open),
-// true/false = you chose, 'jump' = opened by a jump (still folds itself away once finished).
+// Sections never close on their own. When a day opens, the first unfinished section is open (finished
+// ones show their summary). Finishing a section opens the next one below it, without scrolling.
+// Only tapping a header closes or opens a section.
 let secOpen = {}, secDay = null, prevDone = null, hintFor = null;
-const justDone = new Set();
 const HINT_KEY = 'lj.sliderHint.v1';
 function renderForm() {
-  if (secDay !== current) { secOpen = {}; secDay = current; prevDone = null; justDone.clear(); }
   const f = $('form'); f.innerHTML = '';
   const e = entry(), secs = layout();
-  // A section you just finished stays open for a moment, then folds away.
   const doneNow = new Set(secs.filter(s => s.fields.length && s.fields.every(x => answered(e, x))).map(s => s.id));
-  if (prevDone) for (const id of doneNow) if (!prevDone.has(id) && secOpen[id] !== true && secOpen[id] !== false) foldSoon(id);
   const firstOpen = (secs.find(s => !doneNow.has(s.id)) || {}).id;
+  if (secDay !== current) { secOpen = { [firstOpen]: true }; secDay = current; prevDone = null; }
+  // You just finished a section: keep it open and also open the next unfinished one.
+  if (prevDone && [...doneNow].some(id => !prevDone.has(id)) && firstOpen && secOpen[firstOpen] === undefined) secOpen[firstOpen] = true;
   prevDone = doneNow;
   // Show the "tap or drag" slider hint once, on the first unanswered slider, until you've used one.
   hintFor = load(HINT_KEY, false) ? null
     : (secs.flatMap(s => s.fields).find(x => x.ui === 'slider' && !answered(e, x)) || {}).id;
   for (const s of secs) {
     const n = s.fields.filter(x => answered(e, x)).length, done = doneNow.has(s.id);
-    const choice = secOpen[s.id];
-    const open = choice === false ? false : choice ? true : (s.id === firstOpen || justDone.has(s.id));
+    const open = !!secOpen[s.id];
     const sub = done || (!open && n) ? summary(s, e) : s.fields.length ? `${n} of ${s.fields.length} answered` : 'Optional';
     const sec = document.createElement('section');
     sec.className = 'sec' + (open ? ' open' : '') + (done ? ' done' : ''); sec.dataset.sec = s.id;
@@ -792,29 +794,11 @@ function renderForm() {
     const inner = sec.querySelector('.sec-in');
     sec.querySelector('.sec-body').inert = !open;
     for (const it of s.items) inner.appendChild(it.kind === 'beh' ? behaviorCard(it.b, e) : it.kind === 'habits' ? habitsCard(e) : questionCard(it.q, e));
-    sec.querySelector('.sec-h').onclick = () => { secOpen[s.id] = !open; justDone.delete(s.id); refresh(); };
+    sec.querySelector('.sec-h').onclick = () => { secOpen[s.id] = !open; refresh(); };
     f.appendChild(sec);
   }
   renderFinish(secs, e);
   renderPill(secs, e);
-}
-function foldSoon(id) {
-  justDone.add(id);
-  setTimeout(function fold() {
-    if (!justDone.has(id)) return;
-    if (document.querySelector('.sl.dragging')) return setTimeout(fold, 400); // don't redraw mid-drag
-    justDone.delete(id);
-    const el = document.querySelector(`.sec[data-sec="${id}"]`);
-    if (!el || secOpen[id] === true || secOpen[id] === false) return refresh();
-    delete secOpen[id];
-    el.classList.remove('open'); // animate the fold, then redraw
-    setTimeout(() => {
-      refresh();
-      // bring the next section (now open) into view
-      const next = document.querySelector('.sec.open') || document.getElementById('finish');
-      if (next) { const r = next.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * .55) next.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-    }, 200);
-  }, 900);
 }
 function questionCard(q, e) {
   const card = document.createElement('div'); card.className = 'q'; card.dataset.id = q.id;
@@ -868,27 +852,26 @@ function questionCard(q, e) {
   return card;
 }
 // One card for all yes/no habits: tap what happened, then "That's all" marks the rest as No.
+// Habits you didn't tap count as "no". Saved as explicit answers once you touch the card or finish the day.
+function fillHabitDefaults() {
+  const e = entry();
+  for (const q of habitQs()) if (e[q.id] === undefined && !isUnsure(e, q.id)) setValue(q.id, 0);
+}
 function habitsCard(e) {
   const qs = habitQs();
   const card = document.createElement('div'); card.className = 'q'; card.dataset.id = 'habits';
-  card.innerHTML = `<div class="label"><span>What happened today?</span><small>tap all that apply</small></div><div class="tiles"></div><div class="tiles-foot"></div>`;
+  card.innerHTML = `<div class="label"><span>What happened today?</span><small>tap the ones you did</small></div><div class="tiles"></div>`;
   const grid = card.querySelector('.tiles');
   for (const q of qs) {
     const v = e[q.id];
     const b = document.createElement('button');
-    b.className = 'tile' + (v === 1 ? ' yes' : v === 0 ? ' no' : '');
+    b.className = 'tile' + (v === 1 ? ' yes' : '');
     b.setAttribute('aria-pressed', v === 1);
-    b.setAttribute('aria-label', `${q.tile}: ${v === 1 ? 'yes' : v === 0 ? 'no' : 'not answered'}`);
-    b.innerHTML = `${icon(q.icon)}<span>${esc(q.tile)}</span><span class="st">${v === 1 ? icon('check') : v === 0 ? 'no' : ''}</span>`;
-    b.onclick = () => { setValue(q.id, v === 1 ? 0 : 1); buzz(); refresh(); maybeCelebrate(); };
+    b.setAttribute('aria-label', `${q.tile}: ${v === 1 ? 'yes' : 'no'}`);
+    b.innerHTML = `${icon(q.icon)}<span>${esc(q.tile)}</span><span class="st">${v === 1 ? icon('check') : ''}</span>`;
+    b.onclick = () => { fillHabitDefaults(); setValue(q.id, v === 1 ? 0 : 1); buzz(); refresh(); };
     grid.appendChild(b);
   }
-  const unset = qs.filter(q => e[q.id] === undefined), foot = card.querySelector('.tiles-foot');
-  if (unset.length) {
-    const anyYes = qs.some(q => e[q.id] === 1);
-    foot.innerHTML = `<span>${anyYes ? 'Anything else?' : 'Nothing today?'}</span><button class="btn-sm">${anyYes ? 'That’s all' : 'None of these'}</button>`;
-    foot.querySelector('button').onclick = () => { unset.forEach(q => setValue(q.id, 0)); buzz(); refresh(); maybeCelebrate(); };
-  } else foot.innerHTML = '<span>Tap a tile to change it.</span>';
   return card;
 }
 function renderFinish(secs, e) {
@@ -930,7 +913,7 @@ addEventListener('scroll', () => { if (!pillTick) { pillTick = true; requestAnim
 function jumpTo(id) {
   const cid = cardIdFor(id);
   const s = layout().find(s => s.items.some(it => it.card === cid));
-  if (s && secOpen[s.id] !== true) secOpen[s.id] = 'jump'; // open it; it still folds away once finished
+  if (s) secOpen[s.id] = true;
   refresh();
   const c = document.querySelector(`.q[data-id="${cid}"]`);
   if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 1400); }
@@ -1078,8 +1061,27 @@ function lastSleep() {
   return days.length ? entries[days[days.length - 1]].sleep : 7;
 }
 function maybeCelebrate() { if (completion(current) >= 1) toast('✓ Check-in complete'); }
+// Redraws keep the card you just touched in the same spot on screen, even when things above it
+// change (the reminder hiding, the voice button hiding, a section opening).
+let lastTouched = null;
+document.addEventListener('pointerdown', ev => { lastTouched = ev.target.closest && ev.target.closest('.q[data-id]'); }, true);
+function anchorCard() {
+  const pick = c => { const r = c.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight ? { id: c.dataset.id, top: r.top } : null; };
+  if (lastTouched && lastTouched.isConnected) { const a = pick(lastTouched); if (a) return a; }
+  let best = null, bd = Infinity; // otherwise the card nearest the middle of the screen
+  for (const c of document.querySelectorAll('.sec.open .q[data-id]')) {
+    const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) continue;
+    const d = Math.abs(r.top + r.height / 2 - innerHeight / 2); if (d < bd) { bd = d; best = { id: c.dataset.id, top: r.top }; }
+  }
+  return best;
+}
 function refresh() {
-  const y = window.scrollY; renderHeader(); renderForm(); window.scrollTo(0, y);
+  if (completion(current) >= 1) fillHabitDefaults(); // a finished day saves untapped habits as "no"
+  const y = window.scrollY, anchor = $('v-today').classList.contains('on') ? anchorCard() : null;
+  renderHeader(); renderForm();
+  window.scrollTo(0, y);
+  const el = anchor && document.querySelector(`.sec.open .q[data-id="${anchor.id}"]`);
+  if (el) { const shift = el.getBoundingClientRect().top - anchor.top; if (Math.abs(shift) > 1) window.scrollBy(0, shift); }
 }
 function go(day) { if (day > todayIso()) return; current = day; refresh(); }
 $('prev').onclick = () => go(addDays(current, -1));
@@ -1261,7 +1263,7 @@ function renderTrends() {
   const feelings = ['mood', 'stress', 'anxiety', 'irritable', 'insecure', 'rested', 'energy', 'productive'].filter(id => !hidden.includes(id));
   const conditions = [
     { name: 'slept 7h or more',        test: e => e.sleep !== undefined ? e.sleep >= 7 : null, ids: ['sleep'] },
-    { name: 'used social media 1h+',   test: e => e.instagram !== undefined ? e.instagram >= 3 : null, ids: ['instagram'] },
+    { name: 'used social media a lot', test: e => e.instagram !== undefined ? e.instagram >= 3 : null, ids: ['instagram'] },
     { name: 'ate properly',            test: e => e.ate !== undefined ? e.ate === 2 : null, ids: ['ate'] },
     { name: 'drank enough water',      test: e => e.water !== undefined ? e.water === 2 : null, ids: ['water'] },
     { name: 'moved your body',         test: e => e.moved !== undefined ? e.moved === 1 : null, ids: ['moved'] },

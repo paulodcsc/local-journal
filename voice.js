@@ -274,7 +274,7 @@
     function read(id, seg, before) {
       seg = afterCorrection(seg);
       if (id === 'sleep') return sleepValue(seg);
-      if (id === 'instagram') { const m = minutes(seg); return m === null ? null : minutesToIdx(m); }
+      if (id === 'instagram') { const m = minutes(seg); return m !== null ? minutesToIdx(m) : scaleValue(seg, 'amount', prevDay[id]); }
       if (id === 'ate' || id === 'water') return threeValue(seg, before);
       if (KIND[id]) return scaleValue(seg, KIND[id], prevDay[id]);
       return yesNoValue(seg, before);
@@ -363,6 +363,13 @@
     'Scrolling': ['scrolling', 'scrolled', 'instagram', 'insta', 'phone', 'social media', 'tiktok'], 'Tired': ['tired', 'exhausted', 'sleepy'],
     'Drinking': ['drinking', 'drunk', 'alcohol', 'drinks', 'tipsy'], 'After a fight': ['fight', 'argument', 'argued', 'fought', 'conflict'],
     'Other': ['other', 'something else'],
+    // "What happened today?" habits
+    'Moved / exercised': ['moved', 'exercise', 'exercised', 'workout', 'worked out', 'work out', 'gym', 'walked', 'walk', 'run', 'ran', 'yoga', 'training', 'sport'],
+    'Went outside': ['outside', 'went out', 'outdoors', 'daylight', 'sunlight', 'sun'],
+    'Real talk': ['talk', 'talked', 'real talk', 'conversation', 'friend', 'friends', 'called', 'chat'],
+    'Caffeine after 2pm': ['caffeine', 'coffee', 'espresso', 'energy drink'],
+    'Alcohol': ['alcohol', 'drink', 'drinks', 'drank', 'drinking', 'beer', 'wine', 'booze'],
+    'Took meds': ['meds', 'medication', 'medicine', 'pills', 'pill'],
   };
   const clean = t => ' ' + t.toLowerCase().replace(/[’`]/g, "'").replace(/[-_]/g, ' ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
   const hasWord = (raw, phrase) => raw.includes(' ' + phrase.toLowerCase().replace(/[-_]/g, ' ') + ' ');
@@ -402,6 +409,10 @@
       case 'slider': {
         // "pretty high", "medium-high", "between low and medium" are in-betweens, not the label inside them
         const between = toks.includes('MEDHIGH') ? 3 : toks.includes('LOWMED') ? 1 : null;
+        // social media also accepts durations: "two hours", "half an hour", "20 minutes"
+        if (ctx.minutes && toks.some(w => /^(min|mins|minute|minutes|hour|hours|h|hr|hrs|HALFHOUR)$/.test(w))) {
+          const m = minutes(toks); if (m !== null) return { value: minutesToIdx(m) };
+        }
         v = between ?? labelMatch(raw, ctx.labels, { okay: 2, medium: 2, middle: 2 });
         if (v === null && ctx.kind === 'urge') v = urgeWord(toks);
         if (v === null && ctx.kind !== 'urge') v = scaleValue(toks, ctx.kind, ctx.prev);

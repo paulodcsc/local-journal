@@ -21,7 +21,7 @@ function guideSteps() {
     steps.push({ f: fw, type: 'multi', sec: 'Behaviours', title: b.name, sub: 'What set it off?', say: 'What set it off?',
       when: e => e[fu.id] > 0 || e[fd.id] > 0 });
   });
-  let behDone = false;
+  let behDone = false, habitsDone = false;
   for (const q of visible()) {
     if (!behDone && QUESTIONS.indexOf(q) >= HABITS_START) { addBehaviors(); behDone = true; }
     const spoken = q.label.replace(' / ', ' or ').replace('?', '');
@@ -30,7 +30,11 @@ function guideSteps() {
     else if (q.type === 'hours') steps.push({ f: q, type: 'hours', title: q.label, say: 'How many hours did you sleep?' });
     else if (q.id === 'instagram') steps.push({ f: q, type: 'minutes', title: q.label, say: 'How much Instagram or social media today?' });
     else if (q.type === 'scale') steps.push({ f: q, type: 'three', title: q.label, say: spoken + '?' });
-    else if (q.type === 'yesno') steps.push({ f: q, type: 'yesno', title: q.label, say: spoken + '?' });
+    else if (q.type === 'yesno') { // one question for all habits: say the ones you did
+      if (!habitsDone) steps.push({ f: { id: 'habits' }, type: 'habits', title: 'What happened today?', sub: 'Say or tap the ones you did',
+        say: 'What happened today? Say the ones you did, or none.' });
+      habitsDone = true;
+    }
     else if (q.type === 'note') steps.push({ f: q, type: 'note', title: 'Anything to note about today?', say: 'Anything to note about today? Or say skip.' });
   }
   if (!behDone) addBehaviors();
@@ -41,13 +45,14 @@ function guideSteps() {
   return steps;
 }
 const applies = (s, e) => !s.when || s.when(e);
-const isMissing = (s, e) => e[s.f.id] === undefined && !isUnsure(e, s.f.id);
+const isMissing = (s, e) => s.type === 'habits' ? habitQs().every(q => e[q.id] === undefined) : e[s.f.id] === undefined && !isUnsure(e, s.f.id);
 const shouldAsk = (s, e) => applies(s, e) && (!G.onlyMissing || isMissing(s, e));
 const step = () => G.steps[G.i];
 const yesterdayOf = id => entries[addDays(current, -1)]?.[id];
 function labelsFor(s) {
   if (s.type === 'yesno') return ['No', 'Yes'];
   if (s.type === 'multi') return TRIGGERS;
+  if (s.type === 'habits') return habitQs().map(q => q.tile);
   return s.f.opts;
 }
 const optLabel = (s, v) => s.type === 'hours' ? `${v}h` : s.type === 'multi' ? v.join(', ') : labelsFor(s)[v];
@@ -121,8 +126,10 @@ function commitAnswer(value, { unsure = false, delay = 1000 } = {}) {
   const s = step(); if (!s) return;
   G.token++; stopListening(); stopSpeaking();
   const id = s.f.id, before = entry();
-  G.last = { id, prev: before[id], prevUnsure: isUnsure(before, id), wasAnswered: G.answered.includes(id), filled: null };
-  if (unsure) setUnsure(id, true);
+  G.last = { id, prev: before[id], prevUnsure: isUnsure(before, id), wasAnswered: G.answered.includes(id), filled: null,
+    habits: s.type === 'habits' ? Object.fromEntries(habitQs().map(q => [q.id, before[q.id]])) : null };
+  if (s.type === 'habits') habitQs().forEach(q => setValue(q.id, value.includes(q.tile) ? 1 : 0));
+  else if (unsure) setUnsure(id, true);
   else if (s.type === 'multi') setValue(id, value.length ? value : undefined);
   else if (s.type === 'note') { const old = entry().note; setValue(id, old && !old.includes(value) ? `${old} ${value}` : value); }
   else setValue(id, value);
@@ -131,7 +138,7 @@ function commitAnswer(value, { unsure = false, delay = 1000 } = {}) {
     setValue(s.f.beh.id + '_did', 0); G.last.filled = s.f.beh.id + '_did';
   }
   if (!G.answered.includes(id)) G.answered.push(id);
-  if (s.type === 'hours' || s.type === 'multi') G.pending = value; // show what was said, not the old draft
+  if (s.type === 'hours' || s.type === 'multi' || s.type === 'habits') G.pending = value; // show what was said, not the old draft
   G.picked = id; buzz(); render();
   setMic('Saved'); $('gUndo').hidden = false; // a moment to undo before moving on
   const t = G.token;
@@ -141,8 +148,8 @@ function hideUndo() { $('gUndo').hidden = true; }
 function undoLast() {
   const L = G && G.last; if (!L) return;
   G.token++; hideUndo();
-  setUnsure(L.id, false);
-  if (L.prevUnsure) setUnsure(L.id, true); else setValue(L.id, L.prev);
+  if (L.habits) Object.entries(L.habits).forEach(([id, v]) => setValue(id, v));
+  else { setUnsure(L.id, false); if (L.prevUnsure) setUnsure(L.id, true); else setValue(L.id, L.prev); }
   if (L.filled) setValue(L.filled, undefined);
   if (!L.wasAnswered) G.answered = G.answered.filter(x => x !== L.id);
   G.last = null; G.pending = null; G.paused = false; G.retries = 0; G.silent = 0;
@@ -155,7 +162,7 @@ function nudgeOptions() {
   o.classList.remove('nudge'); void o.offsetWidth; o.classList.add('nudge');
 }
 function handleSpeech(alts) {
-  const s = step(), ctx = { type: s.type, kind: s.kind, labels: labelsFor(s), prev: yesterdayOf(s.f.id) };
+  const s = step(), ctx = { type: s.type === 'habits' ? 'multi' : s.type, kind: s.kind, labels: labelsFor(s), prev: yesterdayOf(s.f.id), minutes: s.f.id === 'instagram' };
   let res = null, heard = alts[0];
   for (const a of alts) { res = VoiceParse.answer(a, ctx); if (res) { heard = a; break; } }
   if (!res) {
@@ -275,12 +282,13 @@ function render() {
       hint = 'Say a number, like “seven and a half”.';
       break;
     }
+    case 'habits':
     case 'multi': {
-      if (G.pending === null) G.pending = [...(v || [])];
-      html += `<div class="chips wrap g-chips">` + TRIGGERS.map(t =>
+      if (G.pending === null) G.pending = s.type === 'habits' ? habitQs().filter(q => e[q.id] === 1).map(q => q.tile) : [...(v || [])];
+      html += `<div class="chips wrap g-chips">` + labelsFor(s).map(t =>
         `<button class="chip ${G.pending.includes(t) ? 'on' : ''}" data-t="${esc(t)}" style="--i:${n++}">${esc(t)}</button>`).join('') + `</div>
-        <button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? 'Saved' : G.pending.length ? 'Done' : 'Nothing in particular'}</button>`;
-      hint = 'Say any that fit, like “lonely and bored”, or “nothing”.';
+        <button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? 'Saved' : G.pending.length ? 'Done' : s.type === 'habits' ? 'None of these' : 'Nothing in particular'}</button>`;
+      hint = s.type === 'habits' ? 'Say the ones you did, like “moved and went outside”, or “none”.' : 'Say any that fit, like “lonely and bored”, or “nothing”.';
       break;
     }
     case 'note': {
@@ -325,6 +333,10 @@ function finish() {
   G.i = -1; micMsg = ''; heard(null);
   const e = entry();
   const items = G.answered.map((id, i) => {
+    if (id === 'habits') {
+      const did = habitQs().filter(q => e[q.id] === 1).map(q => q.tile.toLowerCase());
+      return `<li style="--i:${i}"><b>What happened today:</b> ${esc(did.join(', ') || 'none of these')}</li>`;
+    }
     const f = field(id); const val = isUnsure(e, id) ? 'not sure' : e[id] === undefined ? '—' : display(f, e[id]);
     return `<li style="--i:${i}"><b>${esc(f.label)}:</b> ${esc(val)}</li>`;
   }).join('');

@@ -5,6 +5,7 @@ const MOOD = ['Bad', 'Not great', 'OK', 'Pretty good', 'Good'];
 const ENERGY = ['Drained', 'Low', 'OK', 'Good', 'High'];
 const URGE = ['None', 'Mild', 'Moderate', 'Strong', 'Overwhelming'];
 const PROD = ['Stuck', 'Slow', 'Some done', 'Productive', 'Very productive'];
+const HAB = ['Moved / exercised', 'Went outside', 'Real talk', 'Caffeine after 2pm', 'Alcohol'];
 const TRIG = ['Bored', 'Lonely', 'Anxious', 'Felt rejected', 'Scrolling', 'Tired', 'Drinking', 'After a fight', 'Other'];
 const S = { type: 'slider', kind: 'amount', labels: AMOUNT5 }, M = { type: 'slider', kind: 'quality', labels: MOOD };
 const cases = [
@@ -23,7 +24,14 @@ const cases = [
   ['strong', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['none', { type: 'slider', kind: 'urge', labels: URGE }, { value: 0 }],
   ['really strong', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['a little', { type: 'slider', kind: 'urge', labels: URGE }, { value: 1 }],
   ['seven and a half', { type: 'hours' }, { value: 7.5 }], ['6', { type: 'hours' }, { value: 6 }], ['about 8 hours', { type: 'hours' }, { value: 8 }],
-  ['two hours', { type: 'minutes' }, { value: 4 }], ['none', { type: 'minutes' }, { value: 0 }], ['half an hour', { type: 'minutes' }, { value: 2 }],
+  ['two hours', { type: 'minutes' }, { value: 4 }],
+  ['two hours', { type: 'slider', kind: 'amount', labels: AMOUNT5, minutes: true }, { value: 4 }],
+  ['half an hour', { type: 'slider', kind: 'amount', labels: AMOUNT5, minutes: true }, { value: 2 }],
+  ['quite high', { type: 'slider', kind: 'amount', labels: AMOUNT5, minutes: true }, { value: 3 }],
+  ['low', { type: 'slider', kind: 'amount', labels: AMOUNT5, minutes: true }, { value: 0 }],
+  ['I moved and went outside', { type: 'multi', labels: HAB }, { value: ['Moved / exercised', 'Went outside'] }],
+  ['had coffee late and talked to a friend', { type: 'multi', labels: HAB }, { value: ['Real talk', 'Caffeine after 2pm'] }],
+  ['none', { type: 'multi', labels: HAB }, { value: [] }], ['none', { type: 'minutes' }, { value: 0 }], ['half an hour', { type: 'minutes' }, { value: 2 }],
   ['yes', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 2 }], ['some meals', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 1 }],
   ['barely', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 0 }], ['a bit', { type: 'three', labels: ['No', 'A bit', 'Yes'] }, { value: 1 }],
   ['yeah', { type: 'yesno' }, { value: 1 }], ['nope', { type: 'yesno' }, { value: 0 }], ['I did', { type: 'yesno' }, { value: 1 }], ['no', { type: 'yesno' }, { value: 0 }],
