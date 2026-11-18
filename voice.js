@@ -197,7 +197,7 @@
   const BEH_STOP = new Set('obsessive obsessively compulsive compulsively myself yourself others other people guys girls someone with about too much really very the and for from his her their when what'.split(' '));
   const stemsOf = name => name.toLowerCase().split(/[^a-z']+/)
     .filter(w => w.length > 3 && !BEH_STOP.has(w))
-    .map(w => w.replace(/(ing|ed|es|s|e)$/, '')).filter(w => w.length >= 4);
+    .map(w => stripAccents(w).replace(/(ando|endo|indo|ing|ar|er|ir|ed|es|s|e)$/, '')).filter(w => w.length >= 4);
   const URGE_W = new Set(['urge', 'urges', 'wanted', 'want', 'tempted', 'temptation', 'craving', 'itch', 'itching', 'impulse']);
   const RESIST_W = new Set(['not', 'no', 'never', 'resisted', 'resist', 'avoided', 'stopped', 'held', 'without', 'zero', 'none', 'nope']);
   const ACTED_W = new Set(['did', 'gave', 'caved', 'anyway', 'acted', 'still', 'yes', 'yeah']);
@@ -223,14 +223,106 @@
   // Keep only what comes after the last correction word ("high, actually medium" → "medium")
   const afterCorrection = seg => { const c = seg.lastIndexOf('CORR'); return c < 0 ? seg : seg.slice(c + 1); };
 
-  // opts: { behaviors: [{id, name}], prev: yesterday's entry } (an array is accepted as behaviors)
+  // ---------------------------------------------------------------------------------------------
+  // Brazilian Portuguese: accents are stripped, then common answers are rewritten into the English
+  // words the rest of the parser already understands ("meio alto" → "medium high", "sete e meia" →
+  // "seven and a half", "não sei" → "not sure"). Order matters: longer phrases first.
+  const W = alts => new RegExp(`\\b(?:${alts})\\b`, 'g');
+  const PT = [
+    [W('nao sei|sei la|nao tenho certeza|sem certeza|nao faco ideia|dificil dizer'), ' not sure '],
+    [W('igual (?:a|ao|de) ontem|igual ontem|mesmo que ontem|mesma coisa (?:de|que) ontem|a mesma coisa|o mesmo|igual'), ' same as yesterday '],
+    [W('mais do que ontem|mais que ontem'), ' more than yesterday '], [W('menos do que ontem|menos que ontem'), ' less than yesterday '],
+    [W('pular|pula|pule|passa|proxima|proximo|seguinte'), ' skip '],
+    [W('voltar|volta|volte|anterior'), ' back '],
+    [W('repetir|repete|repita|de novo'), ' repeat '],
+    [W('parar|para tudo|pronto|terminar|terminei|acabou|chega|encerrar'), ' stop '],
+    [W('na verdade|quer dizer|alias|digo|corrigindo'), ' actually '],
+    // habits & triggers (before the generic words they contain)
+    [W('bebi agua|tomei agua|hidratado|hidratada'), ' drank water '],
+    [W('me mexi|me exercitei|exercicio|exercicios|academia|treinei|treino|caminhei|caminhada|corri|corrida|ioga|yoga|malhei'), ' exercised '],
+    [W('sai de casa|fui la fora|la fora|ar livre|peguei sol|luz do dia|sai'), ' outside '],
+    [W('conversa de verdade|conversei|conversa|liguei pra|amigos|amigas|amigo|amiga'), ' talked '],
+    [W('cafe|cafeina|expresso'), ' coffee '],
+    [W('alcool|bebi|bebida|bebidas|cerveja|vinho|drinque'), ' alcohol '],
+    [W('remedio|remedios|medicacao|medicamento|medicamentos'), ' meds '],
+    [W('tedio|entediado|entediada'), ' bored '], [W('solidao|sozinho|sozinha|solitario|solitaria'), ' lonely '],
+    [W('rejeitado|rejeitada|rejeicao|ignorado|ignorada|vacuo'), ' rejected '],
+    [W('rolando o feed|rolando|rolei|scrollando'), ' scrolling '], [W('briga|brigamos|briguei|discussao|discuti'), ' fight '],
+    [W('outra coisa|outro'), ' other '],
+    // productivity
+    [W('nao fiz nada|improdutivo|improdutiva'), ' unproductive '],
+    [W('fiz muita coisa|fiz bastante coisa|fiz muitas coisas'), ' got a lot done '], [W('fiz algumas coisas|fiz umas coisas'), ' got some things done '],
+    [W('produtividade|produtivo|produtiva'), ' productive '],
+    // food
+    [W('quase nada|quase nao|mal comi'), ' barely '], [W('algumas refeicoes|umas refeicoes'), ' some meals '],
+    // how often (acted on it)
+    [W('nenhuma vez'), ' never '], [W('so uma vez|uma vez so|uma vez'), ' once '], [W('duas vezes'), ' twice '],
+    [W('algumas vezes|umas vezes|poucas vezes|algumas'), ' a few times '], [W('muitas vezes|varias vezes|muitas|o tempo todo|toda hora'), ' a lot '],
+    // durations
+    [W('e meia'), ' and a half '], [W('meia hora'), ' half an hour '], [W('horas'), ' hours '], [W('hora'), ' hour '],
+    [W('minutos'), ' minutes '], [W('minuto'), ' minute '],
+    // levels
+    [W('um pouquinho|um pouco|pouquinho|pouco'), ' a bit '],
+    [W('meio alto|meio alta|medio alto|media alta|medio para alto|entre medio e alto'), ' medium high '],
+    [W('meio baixo|meio baixa|medio baixo|media baixa|entre baixo e medio'), ' low medium '],
+    [W('muito alto|muito alta|altissimo|altissima|bem alto|bem alta'), ' very high '],
+    [W('muito baixo|muito baixa|baixissimo|baixissima'), ' very low '],
+    [W('alto|alta'), ' high '], [W('baixo|baixa'), ' low '], [W('mediano|mediana|medio|media|moderado|moderada|regular'), ' medium '],
+    [W('incontrolavel|insuportavel|enorme|muito forte'), ' overwhelming '], [W('forte'), ' strong '], [W('leve|levinho|levinha'), ' mild '],
+    [W('nem um pouco|nenhum|nenhuma|nada'), ' none '],
+    [W('bastante|demais|pra caramba'), ' a lot '],
+    [W('nao muito bom|nao muito boa|nao tao bom|nao tao boa'), ' not great '],
+    [W('pessimo|pessima|horrivel|terrivel|muito ruim'), ' awful '],
+    [W('otimo|otima|excelente|maravilhoso|maravilhosa|incrivel|perfeito|perfeita|muito bom|muito boa|super bem'), ' great '],
+    [W('mais ou menos|razoavel|normal|de boa'), ' ok '], [W('tranquilo|tranquila|calmo|calma'), ' calm '],
+    [W('ruim|mal'), ' bad '], [W('bom|boa|legal'), ' pretty good '],
+    [W('bem descansado|bem descansada|descansei bem'), ' well rested '], [W('descansado|descansada|descanso|descansei'), ' rested '],
+    [W('exausto|exausta|esgotado|esgotada|acabado|acabada|morto|morta'), ' exhausted '],
+    [W('sem energia|sem bateria|drenado|drenada'), ' drained '], [W('cansado|cansada|cansaco'), ' tired '],
+    [W('travado|travada|empacado|empacada'), ' stuck '], [W('devagar|lento|lenta'), ' slow '],
+    [W('muito'), ' very '], [W('meio|tipo'), ' kind of '], [W('bem'), ' well '],
+    // yes / no
+    [W('sim|aham|uhum|claro|com certeza|isso'), ' yes '], [W('nao|nem'), ' no '],
+    // what each question is about
+    [W('dormi|durmo|dormir|sono'), ' slept '], [W('humor'), ' mood '],
+    [W('estresse'), ' stress '], [W('estressado|estressada|estressante'), ' stressed '],
+    [W('ansiedade'), ' anxiety '], [W('ansioso|ansiosa|nervoso|nervosa|preocupado|preocupada'), ' anxious '],
+    [W('irritabilidade|irritacao'), ' irritability '], [W('irritado|irritada|bravo|brava|impaciente'), ' irritated '],
+    [W('inseguranca'), ' insecurity '], [W('inseguro|insegura'), ' insecure '],
+    [W('energia'), ' energy '], [W('energetico|energetica|disposto|disposta'), ' energetic '],
+    [W('redes sociais|rede social|celular'), ' social media '],
+    [W('me alimentei|alimentacao|refeicoes|refeicao|comida|comer|comi'), ' ate '], [W('agua'), ' water '],
+    // behaviours
+    [W('vontade|impulso|tentacao|tentado|tentada|queria|quis'), ' urge '], [W('resisti|segurei|evitei'), ' resisted '],
+    [W('mesmo assim|ainda assim|cedi'), ' anyway '],
+    // numbers
+    [W('zero'), ' zero '], [W('uma|um'), ' one '], [W('duas|dois'), ' two '], [W('tres'), ' three '], [W('quatro'), ' four '],
+    [W('cinco'), ' five '], [W('seis'), ' six '], [W('sete'), ' seven '], [W('oito'), ' eight '], [W('nove'), ' nine '], [W('dez'), ' ten '],
+    [W('onze'), ' eleven '], [W('doze'), ' twelve '], [W('vinte'), ' twenty '], [W('trinta'), ' thirty '], [W('quarenta'), ' forty '], [W('cinquenta'), ' fifty '],
+    // small words
+    [W('mas|porem'), ' but '], [W('depois|entao'), ' then '], [W('e'), ' and '], [W('ontem'), ' yesterday '], [W('hoje'), ' today '],
+    [W('mais'), ' more '], [W('menos'), ' less '], [W('melhor'), ' better '], [W('pior'), ' worse '], [W('so'), ' '],
+  ];
+  const stripAccents = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function ptToEn(text) {
+    let t = ' ' + stripAccents(text.toLowerCase()).replace(/[’`]/g, "'").replace(/([.,;!?])/g, ' $1 ') + ' ';
+    for (const [re, en] of PT) t = t.replace(re, en);
+    return t.replace(/\s+/g, ' ').trim();
+  }
+  // Default behaviours were named in English: also match the Portuguese verbs.
+  const BEH_ALIASES = { flirt: ['flert', 'paquer'], compare: ['compar'] };
+
+  // opts: { behaviors: [{id, name}], prev: yesterday's entry, lang: 'en' | 'pt' } (an array is accepted as behaviors)
   function parse(text, opts = {}) {
     const behaviors = Array.isArray(opts) ? opts : (opts.behaviors || []);
     const prevDay = (!Array.isArray(opts) && opts.prev) || {};
-    const behStems = behaviors.map(b => ({ id: b.id, stems: stemsOf(b.name) })).filter(b => b.stems.length);
+    const pt = !Array.isArray(opts) && opts.lang === 'pt';
+    const behStems = behaviors.map(b => ({ id: b.id, stems: [...stemsOf(b.name), ...(BEH_ALIASES[b.id] || [])] })).filter(b => b.stems.length);
     let note = null;
-    const noteMatch = text.match(/\b(?:note|notes|diary|journal)\b[:,]?\s*(.*)$/i);
-    if (noteMatch) { note = noteMatch[1].trim(); text = text.slice(0, noteMatch.index); }
+    // the note keeps your own words (not translated)
+    const noteMatch = pt ? stripAccents(text.toLowerCase()).match(/\b(?:nota|anotacao|anotar|anota)\b[:,]?\s*/) : text.match(/\b(?:note|notes|diary|journal)\b[:,]?\s*/i);
+    if (noteMatch) { note = text.slice(noteMatch.index + noteMatch[0].length).trim() || null; text = text.slice(0, noteMatch.index); }
+    if (pt) text = ptToEn(text);
 
     const toks = tokens(text);
     const hits = []; // {id, i, word}
@@ -392,6 +484,8 @@
     return null;
   }
   function answer(text, ctx) {
+    const original = text.trim();
+    if (ctx.lang === 'pt') text = ptToEn(text);
     const raw = clean(text), words = raw.trim().split(' ').filter(Boolean), short = words.length <= 4;
     if (!raw.trim()) return null;
     // Commands (only when the reply is short, so "I couldn't stop…" isn't "stop")
@@ -437,12 +531,12 @@
       }
       case 'note': {
         if (/^ (no|nope|nothing|nah|no thanks|none|not really)( thanks| thank you)? $/.test(raw)) return { cmd: 'skip' };
-        v = text.trim(); break;
+        v = original; break; // your own words, never translated
       }
     }
     return v === null || v === undefined ? null : { value: v };
   }
 
-  root.VoiceParse = { parse, answer };
-  if (typeof module !== 'undefined') module.exports = { parse, answer };
+  root.VoiceParse = { parse, answer, ptToEn };
+  if (typeof module !== 'undefined') module.exports = { parse, answer, ptToEn };
 })(typeof window !== 'undefined' ? window : globalThis);

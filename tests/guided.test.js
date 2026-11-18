@@ -44,6 +44,31 @@ const cases = [
   ['skip', S, { cmd: 'skip' }], ['next', { type: 'yesno' }, { cmd: 'skip' }], ['go back', S, { cmd: 'back' }], ['back', M, { cmd: 'back' }],
   ['repeat', S, { cmd: 'repeat' }], ['stop', S, { cmd: 'stop' }], ["that's all", S, { cmd: 'stop' }], ["I'm done", { type: 'yesno' }, { cmd: 'stop' }],
   ['not sure', { type: 'yesno' }, { cmd: 'skip' }], ['banana', S, null],
+  // Portuguese (pt-BR)
+  ...[
+    ['alto', S, { value: 4 }], ['meio alto', S, { value: 3 }], ['médio', S, { value: 2 }], ['leve', S, { value: 1 }], ['baixo', S, { value: 0 }],
+    ['um pouco', S, { value: 1 }], ['muito', S, { value: 4 }], ['igual a ontem', { ...S, prev: 2 }, { value: 2 }], ['não sei', S, { unsure: true }],
+    ['bom', M, { value: 3 }], ['ótimo', M, { value: 4 }], ['ruim', M, { value: 0 }], ['mais ou menos', M, { value: 2 }], ['não muito bom', M, { value: 1 }],
+    ['forte', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['nenhuma', { type: 'slider', kind: 'urge', labels: URGE }, { value: 0 }],
+    ['incontrolável', { type: 'slider', kind: 'urge', labels: URGE }, { value: 4 }],
+    ['sete e meia', { type: 'hours' }, { value: 7.5 }], ['oito horas', { type: 'hours' }, { value: 8 }],
+    ['duas horas', { type: 'slider', kind: 'amount', labels: AMOUNT5, minutes: true }, { value: 4 }],
+    ['uma vez', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 1 }],
+    ['algumas vezes', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 2 }],
+    ['muitas', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 3 }],
+    ['não', { type: 'freq', labels: ['No', 'Once', 'A few', 'A lot'] }, { value: 0 }],
+    ['sim', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 2 }],
+    ['algumas refeições', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 1 }],
+    ['quase nada', { type: 'three', labels: ['Barely', 'Some meals', 'Yes'] }, { value: 0 }],
+    ['um pouco', { type: 'three', labels: ['No', 'A bit', 'Yes'] }, { value: 1 }],
+    ['sim', { type: 'yesno' }, { value: 1 }], ['não', { type: 'yesno' }, { value: 0 }],
+    ['solidão e tédio', { type: 'multi', labels: TRIG }, { value: ['Bored', 'Lonely'] }],
+    ['me mexi e saí', { type: 'multi', labels: HAB }, { value: ['Moved / exercised', 'Went outside'] }],
+    ['tomei café e conversei com uma amiga', { type: 'multi', labels: HAB }, { value: ['Real talk', 'Caffeine after 2pm'] }],
+    ['nada', { type: 'multi', labels: HAB }, { value: [] }],
+    ['dia longo no trabalho', { type: 'note' }, { value: 'dia longo no trabalho' }], ['não', { type: 'note' }, { cmd: 'skip' }],
+    ['pular', S, { cmd: 'skip' }], ['voltar', S, { cmd: 'back' }], ['repete', S, { cmd: 'repeat' }], ['parar', S, { cmd: 'stop' }],
+  ].map(([t, ctx, exp]) => [t, { ...ctx, lang: 'pt' }, exp]),
 ];
 let fail = 0;
 for (const [t, ctx, exp] of cases) {

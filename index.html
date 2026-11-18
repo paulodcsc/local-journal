@@ -277,6 +277,9 @@
   .group-h { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-2); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
   .group-h svg.i { width: 18px; height: 18px; }
   .group { margin-bottom: var(--sp-2); }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+  .seg button { flex: 1; padding: 10px 8px; border-radius: 999px; font-weight: 600; font-size: var(--fs-sm); color: var(--ink-2); transition: background var(--dur), color var(--dur); }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); }
   .row input[type=text] { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; }
   .row .del { color: var(--muted); font-size: 18px; padding: 0 4px 0 12px; min-height: 44px; }
   .btn { display: block; width: 100%; padding: 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); margin-bottom: var(--sp-2); font-weight: 600; }
@@ -484,6 +487,11 @@
     <h2>Questions to show</h2>
     <p class="muted">Turn off anything you don't care about. Fewer questions means you're more likely to keep going.</p>
     <div id="toggles"></div>
+    <h2>Voice</h2>
+    <p class="muted">The language you speak in when you check in by voice. Auto follows your phone.</p>
+    <div class="seg" id="vlang" role="radiogroup" aria-label="Voice language">
+      <button data-l="auto" role="radio">Auto</button><button data-l="en" role="radio">English</button><button data-l="pt" role="radio">Português</button>
+    </div>
     <h2>Your data</h2>
     <p class="muted">Your entries are stored only on this device, in this browser. Export a backup now and then.</p>
     <button class="btn primary" id="exportCsv">Export as CSV (spreadsheet)</button>
@@ -491,7 +499,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 18 · calmer</p>
+    <p class="muted" style="text-align:center">Version 19 · português</p>
   </section>
 </main>
 
@@ -1093,6 +1101,12 @@ $('next').onclick = () => go(addDays(current, 1));
 // available (or blocked, e.g. some iPhone home-screen apps), the keyboard's own mic
 // button can dictate into the same box. Either way the text is parsed on-device by voice.js.
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+// Voice language: 'auto' follows the phone (Portuguese if it's set to Portuguese), or 'en' / 'pt'.
+const VLANG_KEY = 'lj.voiceLang.v1';
+function voiceLang() {
+  const v = load(VLANG_KEY, 'auto');
+  return v === 'auto' ? ((navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en') : v;
+}
 let rec = null, listening = false, undoSnapshot = null;
 
 function display(q, v) {
@@ -1118,7 +1132,7 @@ function startListening() {
   $('voice').hidden = false; $('vResult').innerHTML = '';
   if (!SR) return keyboardFallback('Type or dictate');
   rec = new SR();
-  rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+  rec.lang = voiceLang() === 'pt' ? 'pt-BR' : 'en-US'; rec.continuous = true; rec.interimResults = true;
   const base = $('vText').value ? $('vText').value.trim() + ' ' : '';
   let finals = [];
   rec.onresult = ev => {
@@ -1145,7 +1159,7 @@ function startListening() {
 function applyVoice() {
   const text = $('vText').value.trim();
   if (!text) { $('vResult').innerHTML = '<p class="muted">Didn’t hear anything. Tap the mic and try again.</p>'; return; }
-  const found = VoiceParse.parse(text, { behaviors, prev: entries[addDays(current, -1)] || {} });
+  const found = VoiceParse.parse(text, { behaviors, prev: entries[addDays(current, -1)] || {}, lang: voiceLang() });
   const before = { ...entry() };
   const e = { ...before }, changed = [];
   const usable = id => field(id) && !hidden.includes(id);
@@ -1202,7 +1216,15 @@ function undoVoice() {
   save(KEY, entries); undoSnapshot = null; lastHeard = null; refresh();
   $('vResult').innerHTML = '<p class="muted">Undone.</p>';
 }
-function openFreeform() { if (listening) return; $('vText').value = ''; startListening(); }
+function openFreeform() {
+  if (listening) return;
+  const pt = voiceLang() === 'pt';
+  $('vText').value = '';
+  $('vText').placeholder = pt ? 'ex.: “Dormi sete horas, meio estressada, humor igual a ontem, não bebi”' : 'e.g. “Slept 7 hours, rested okay, stress high, anxiety low, ate well, no alcohol”';
+  $('vHint').innerHTML = pt ? 'Fale do seu jeito, ex.: <i>“dormi sete e meia, estresse alto, humor mais ou menos, flertei muito, nota dia longo”</i>. Diga <i>“na verdade…”</i> pra corrigir.'
+    : 'Say it however you like, e.g. <i>“slept 7 hours, kind of stressed, mood same as yesterday, flirted a lot, note long day”</i>. Say <i>“actually…”</i> to correct yourself.';
+  startListening();
+}
 $('micBtn').onclick = () => openGuide(); // guided, one question at a time (guide.js)
 $('vDone').onclick = () => {
   if (listening && rec) { rec.stop(); return; } // onend applies the result
@@ -1380,8 +1402,15 @@ $('behAdd').onclick = () => {
   saveBehaviors(); $('behNew').value = ''; renderBehaviors(); toast('Added');
 };
 $('behNew').onkeydown = ev => { if (ev.key === 'Enter') $('behAdd').click(); };
+function renderVoiceLang() {
+  const cur = load(VLANG_KEY, 'auto');
+  document.querySelectorAll('#vlang button').forEach(b => {
+    b.classList.toggle('on', b.dataset.l === cur); b.setAttribute('aria-checked', b.dataset.l === cur);
+    b.onclick = () => { save(VLANG_KEY, b.dataset.l); renderVoiceLang(); toast(b.dataset.l === 'pt' || (b.dataset.l === 'auto' && voiceLang() === 'pt') ? 'Voz em português' : 'Voice in English'); };
+  });
+}
 function renderSettings() {
-  renderBehaviors();
+  renderBehaviors(); renderVoiceLang();
   const t = $('toggles'); t.innerHTML = '';
   for (const sec of SECTIONS.filter(x => x.ids)) {
     const ids = sec.ids.flatMap(id => id === 'habits' ? QUESTIONS.filter(q => q.type === 'yesno').map(q => q.id) : [id]);

@@ -6,6 +6,66 @@
 
 const SOUND_KEY = 'lj.guideSound.v1', TIP_KEY = 'lj.guideTip.v1';
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- Portuguese (pt-BR) wording for the guided screen. Answers are still saved the same way. ----------
+const isPt = () => !!G && G.lang === 'pt';
+const T = (en, pt) => isPt() ? pt : en;
+const PT_SEC = { Sleep: 'Sono', Feelings: 'Sentimentos', Behaviours: 'Comportamentos', 'Your day': 'Seu dia' };
+const PT_LEVEL = {
+  amount: ['Baixo', 'Leve', 'Médio', 'Meio alto', 'Alto'],
+  quality: ['Ruim', 'Não muito bom', 'Ok', 'Bom', 'Ótimo'],
+  urge: ['Nenhuma', 'Leve', 'Moderada', 'Forte', 'Incontrolável'],
+};
+const PT_DID = ['Não', 'Uma vez', 'Algumas', 'Muitas'];
+const PT_TRIG = { Bored: 'Tédio', Lonely: 'Solidão', Anxious: 'Ansiedade', 'Felt rejected': 'Rejeição', Scrolling: 'Rolando o feed',
+  Tired: 'Cansaço', Drinking: 'Bebida', 'After a fight': 'Depois de uma briga', Other: 'Outro' };
+const PT_HAB = { 'Moved / exercised': 'Me mexi / exercício', 'Went outside': 'Saí / luz do dia', 'Real talk': 'Conversa de verdade',
+  'Caffeine after 2pm': 'Café depois das 14h', Alcohol: 'Álcool', 'Took meds': 'Tomei remédio' };
+const PT_URGE_MEANS = ['Nenhuma vontade', 'Percebi, mas deu pra ignorar', 'Difícil de resistir'];
+const PT_Q = {
+  sleep: { title: 'Horas de sono' },
+  rested: { title: 'Como está seu descanso?', means: ['Difícil de funcionar', 'Ok, com cansaço às vezes', 'Cabeça leve, descanso em dia'] },
+  mood: { title: 'Humor', means: ['Um dia pesado e difícil', 'Neutro, com altos e baixos', 'Leve, aproveitei as coisas'] },
+  stress: { title: 'Estresse', means: ['Mal percebi', 'Na cabeça, mas funcionei', 'Mudou o que eu fiz hoje'] },
+  anxiety: { title: 'Ansiedade', means: ['Calma', 'Preocupação às vezes, mas sob controle', 'Difícil de largar, senti no corpo'] },
+  irritable: { title: 'Irritação', means: ['Paciência', 'Impaciência às vezes', 'Pavio curto quase o dia todo'] },
+  insecure: { title: 'Insegurança', means: ['Me senti bem comigo', 'Algumas dúvidas ou autocrítica', 'Me senti insuficiente quase o dia todo'] },
+  energy: { title: 'Energia', means: ['Sem bateria', 'Deu pra levar', 'Fiz as coisas com facilidade'] },
+  productive: { title: 'Produtividade', means: ['Não consegui começar nada', 'Fiz algumas coisas', 'Fiz o que queria, inclusive pra mim'] },
+  instagram: { title: 'Instagram / redes sociais', means: ['Quase nada, ou nada', 'Um pouco, sob controle', 'Bem mais do que eu queria'] },
+  ate: { title: 'Você se alimentou bem?', opts: ['Quase nada', 'Algumas refeições', 'Sim'] },
+  water: { title: 'Bebeu água suficiente?', opts: ['Não', 'Um pouco', 'Sim'] },
+};
+function titleOf(s) {
+  if (!isPt() || s.f.beh) return s.title;
+  if (s.type === 'habits') return 'O que aconteceu hoje?';
+  if (s.type === 'note') return 'Algo pra anotar sobre hoje?';
+  return (PT_Q[s.f.id] || {}).title || s.title;
+}
+function subOf(s) {
+  if (!isPt()) return s.sub;
+  if (s.kind === 'urge') return 'Quão forte foi a vontade?';
+  return { freq: 'Você agiu?', multi: 'O que despertou isso?', habits: 'Diga ou toque no que você fez' }[s.type];
+}
+function dispLabels(s) { // what you see; labelsFor() keeps the saved (English) values
+  const L = labelsFor(s); if (!isPt()) return L;
+  if (s.type === 'slider') return PT_LEVEL[s.kind];
+  if (s.type === 'freq') return PT_DID;
+  if (s.type === 'three') return (PT_Q[s.f.id] || {}).opts || L;
+  if (s.type === 'yesno') return ['Não', 'Sim'];
+  if (s.type === 'multi' || s.type === 'habits') return L.map(x => PT_TRIG[x] || PT_HAB[x] || x);
+  return L;
+}
+const meansOf = s => !isPt() ? s.f.means : s.kind === 'urge' ? PT_URGE_MEANS : (PT_Q[s.f.id] || {}).means || s.f.means;
+function sayOf(s) {
+  if (!isPt()) return s.say;
+  const L = dispLabels(s);
+  const t = titleOf(s), lead = /\?$/.test(t) ? t : t + '.';
+  if (s.type === 'slider') return s.kind === 'urge' ? `${s.f.beh.name}. Quão forte foi a vontade? ${L[0]}, ${L[2]} ou ${L[4]}?` : `${lead} ${L[0]}, ${L[2]} ou ${L[4]}?`;
+  return { hours: 'Quantas horas você dormiu?', freq: 'Você agiu?', multi: 'O que despertou isso?',
+    habits: 'O que aconteceu hoje? Diga o que você fez, ou nada.', note: 'Algo pra anotar sobre hoje? Ou diga pular.' }[s.type] || titleOf(s);
+}
+const speechLang = () => isPt() ? 'pt-BR' : 'en-US';
 let gSound = load(SOUND_KEY, true);
 let G = null; // { steps, i, day, snapshot, onlyMissing, answered, token, rec, listening, speaking, paused, voice, retries, silent, pending }
 
@@ -66,6 +126,10 @@ function openGuide() {
   // Only ask what's still open; if everything is answered, go through it all.
   G.onlyMissing = steps.some(s => applies(s, entry()) && isMissing(s, entry()));
   G.showTip = G.voice && !load(TIP_KEY, false);
+  G.lang = voiceLang();
+  $('gBack').textContent = T('‹ Back', '‹ Voltar'); $('gUnsure').textContent = T('Not sure', 'Não sei');
+  $('gSkip').textContent = T('Skip ›', 'Pular ›'); $('gAlt').textContent = T('Say everything at once instead', 'Dizer tudo de uma vez');
+  $('gUndo').textContent = T('Undo', 'Desfazer');
   $('guide').hidden = false; document.body.classList.add('noscroll');
   $('gSound').innerHTML = icon(gSound ? 'sound' : 'mute');
   goNext();
@@ -111,7 +175,7 @@ function ask() {
   const t = ++G.token;
   stopListening(); heard(null);
   if (!G.voice) return setMic();
-  speak(step().say, () => { if (G && t === G.token) listen(); });
+  speak(sayOf(step()), () => { if (G && t === G.token) listen(); });
 }
 // What the app is hearing, shown under the mic: live text, a confirmed answer, a miss, or sound bars.
 function heard(text, kind = '') {
@@ -140,7 +204,7 @@ function commitAnswer(value, { unsure = false, delay = 1000 } = {}) {
   if (!G.answered.includes(id)) G.answered.push(id);
   if (s.type === 'hours' || s.type === 'multi' || s.type === 'habits') G.pending = value; // show what was said, not the old draft
   G.picked = id; buzz(); render();
-  setMic('Saved'); $('gUndo').hidden = false; // a moment to undo before moving on
+  setMic(T('Saved', 'Salvo')); $('gUndo').hidden = false; // a moment to undo before moving on
   const t = G.token;
   setTimeout(() => { if (G && t === G.token) goNext(); }, calm() ? Math.min(delay, 600) : delay);
 }
@@ -162,21 +226,21 @@ function nudgeOptions() {
   o.classList.remove('nudge'); void o.offsetWidth; o.classList.add('nudge');
 }
 function handleSpeech(alts) {
-  const s = step(), ctx = { type: s.type === 'habits' ? 'multi' : s.type, kind: s.kind, labels: labelsFor(s), prev: yesterdayOf(s.f.id), minutes: s.f.id === 'instagram' };
+  const s = step(), ctx = { type: s.type === 'habits' ? 'multi' : s.type, kind: s.kind, labels: labelsFor(s), prev: yesterdayOf(s.f.id), minutes: s.f.id === 'instagram', lang: G.lang };
   let res = null, heard = alts[0];
   for (const a of alts) { res = VoiceParse.answer(a, ctx); if (res) { heard = a; break; } }
   if (!res) {
     G.retries++;
     showHeard(`“${heard}”`, 'bad'); nudgeOptions();
-    if (G.retries >= 3) { G.paused = true; setMic('Didn’t catch that. Tap an answer, or the mic to try again.'); return; }
-    setMic('Didn’t catch that. Try one of the options.'); return listen(true);
+    if (G.retries >= 3) { G.paused = true; setMic(T('Didn’t catch that. Tap an answer, or the mic to try again.', 'Não entendi. Toque numa resposta, ou no microfone pra tentar de novo.')); return; }
+    setMic(T('Didn’t catch that. Try one of the options.', 'Não entendi. Tente uma das opções.')); return listen(true);
   }
   showHeard(`“${heard}”`, res.noPrev ? 'bad' : 'ok');
   if (res.cmd === 'skip') return goNext();
   if (res.cmd === 'back') return goBack();
   if (res.cmd === 'repeat') return ask();
   if (res.cmd === 'stop') return finish();
-  if (res.noPrev) { setMic('Nothing from yesterday to compare to. Say a level instead.'); return listen(true); }
+  if (res.noPrev) { setMic(T('Nothing from yesterday to compare to. Say a level instead.', 'Não tem resposta de ontem pra comparar. Diga um nível.')); return listen(true); }
   if (res.unsure) return commitAnswer(undefined, { unsure: true });
   commitAnswer(res.value);
 }
@@ -186,7 +250,7 @@ function listen(keepMsg) {
   if (!G || !G.voice || G.paused) return setMic();
   stopListening();
   const r = new SR();
-  r.lang = 'en-US'; r.continuous = false; r.interimResults = true; r.maxAlternatives = 3;
+  r.lang = speechLang(); r.continuous = false; r.interimResults = true; r.maxAlternatives = 3;
   const t = G.token; let alts = null;
   r.onresult = ev => {
     const res = ev.results[ev.results.length - 1];
@@ -196,8 +260,10 @@ function listen(keepMsg) {
   r.onerror = ev => {
     if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'language-not-supported'].includes(ev.error)) {
       G.voice = false;
-      G.voiceMsg = ev.error === 'not-allowed' ? 'Microphone permission was denied. Tap your answer.'
-        : ev.error === 'network' ? 'Voice needs an internet connection here. Tap your answer.' : 'Voice isn’t available here. Tap your answer.';
+      G.voiceMsg = ev.error === 'not-allowed' ? T('Microphone permission was denied. Tap your answer.', 'O microfone foi bloqueado. Toque na sua resposta.')
+        : ev.error === 'network' ? T('Voice needs an internet connection here. Tap your answer.', 'A voz precisa de internet aqui. Toque na sua resposta.')
+        : ev.error === 'language-not-supported' ? T('Voice isn’t available in this language here. Tap your answer.', 'Voz em português não disponível aqui. Toque na sua resposta.')
+        : T('Voice isn’t available here. Tap your answer.', 'Voz não disponível aqui. Toque na sua resposta.');
     }
   };
   r.onend = () => {
@@ -225,7 +291,10 @@ function speak(text, then) {
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; u.rate = 1.05; u.onend = done; u.onerror = done;
+    u.lang = speechLang(); u.rate = isPt() ? 1.0 : 1.05; u.onend = done; u.onerror = done;
+    const want = speechLang().toLowerCase(), voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+    const v = voices.find(x => x.lang && x.lang.replace('_', '-').toLowerCase() === want) || voices.find(x => x.lang && x.lang.toLowerCase().startsWith(want.slice(0, 2)));
+    if (v) u.voice = v;
     G.speaking = true; setMic(); heard('speaking');
     speechSynthesis.speak(u);
     setTimeout(done, 1500 + text.length * 85); // some browsers never fire onend
@@ -243,68 +312,74 @@ function setMic(msg) {
   btn.hidden = !G.voice || G.i < 0;
   btn.className = 'g-micbtn' + (G.listening ? ' listening' : '') + (G.speaking ? ' speaking' : '') + (G.paused || (!G.listening && !G.speaking) ? ' paused' : '');
   btn.setAttribute('aria-label', G.listening ? 'Pause listening' : G.speaking ? 'Answer now' : 'Answer by voice');
-  txt.textContent = G.i < 0 ? '' : !G.voice ? (G.voiceMsg || 'Voice isn’t available in this browser. Tap your answer.')
-    : micMsg || (G.speaking ? 'Reading the question… tap the mic to answer now' : G.listening ? 'Listening…' : 'Paused. Tap the mic to answer by voice.');
+  txt.textContent = G.i < 0 ? '' : !G.voice ? (G.voiceMsg || T('Voice isn’t available in this browser. Tap your answer.', 'Voz não disponível neste navegador. Toque na sua resposta.'))
+    : micMsg || (G.speaking ? T('Reading the question… tap the mic to answer now', 'Lendo a pergunta… toque no microfone pra responder já')
+      : G.listening ? T('Listening…', 'Ouvindo…') : T('Paused. Tap the mic to answer by voice.', 'Pausado. Toque no microfone pra responder por voz.'));
 }
 function render() {
   const body = $('gBody'), s = step(), e = entry();
   $('gNav').hidden = false; $('gAlt').hidden = false;
   const inSec = G.steps.filter(x => x.sec === s.sec && applies(x, e));
-  $('gCount').innerHTML = `<b>${esc(s.sec)}</b> · ${inSec.indexOf(s) + 1} of ${inSec.length}`;
+  $('gCount').innerHTML = `<b>${esc(isPt() ? PT_SEC[s.sec] || s.sec : s.sec)}</b> · ${inSec.indexOf(s) + 1} ${T('of', 'de')} ${inSec.length}`;
   $('gBar').style.width = (completion(current) * 100) + '%';
   const v = e[s.f.id], unsure = isUnsure(e, s.f.id), y = yesterdayOf(s.f.id);
-  let html = G.showTip ? `<div class="g-tip" id="gTip"><span>Answer with a word or two, like <b>“high”</b> or <b>“a bit”</b>. You can also say <b>“skip”</b>, <b>“back”</b> or <b>“stop”</b>.</span><button id="gTipOk">Got it</button></div>` : '';
-  html += `<div class="g-title">${esc(s.title)}</div>`;
-  if (s.sub) html += `<div class="g-sub">${esc(s.sub)}</div>`;
-  if (y !== undefined && s.type !== 'note') html += `<div class="g-y">Yesterday: ${esc(String(optLabel(s, y)).toLowerCase())}</div>`;
+  let html = G.showTip ? `<div class="g-tip" id="gTip"><span>${T('Answer with a word or two, like <b>“high”</b> or <b>“a bit”</b>. You can also say <b>“skip”</b>, <b>“back”</b> or <b>“stop”</b>.',
+    'Responda com uma ou duas palavras, como <b>“alto”</b> ou <b>“um pouco”</b>. Você também pode dizer <b>“pular”</b>, <b>“voltar”</b> ou <b>“parar”</b>.')}</span><button id="gTipOk">${T('Got it', 'Entendi')}</button></div>` : '';
+  html += `<div class="g-title">${esc(titleOf(s))}</div>`;
+  const sub = subOf(s);
+  if (sub) html += `<div class="g-sub">${esc(sub)}</div>`;
+  const D = dispLabels(s);
+  const shown = val => s.type === 'hours' ? `${val}h` : D[val];
+  if (y !== undefined && s.type !== 'note' && shown(y) !== undefined) html += `<div class="g-y">${T('Yesterday', 'Ontem')}: ${esc(String(shown(y)).toLowerCase())}</div>`;
   const pop = G.picked === s.f.id; G.picked = null;
   let n = 0;
   const opt = (val, label, extra = '', cls = '') => {
     const on = v === val && !unsure;
     return `<button class="g-opt ${cls} ${on ? 'on' : ''} ${on && pop ? 'picked' : ''}" data-v="${val}" style="--i:${n++}">${esc(label)}${extra}${on ? icon('check', 'g-ck') : ''}</button>`;
   };
-  const ytag = val => y === val ? ' <span class="g-tag">yesterday</span>' : '';
+  const ytag = val => y === val ? ` <span class="g-tag">${T('yesterday', 'ontem')}</span>` : '';
   let hint = '';
   switch (s.type) {
     case 'slider': {
-      const o = labelsFor(s);
+      const o = D, means = meansOf(s);
       html += `<div class="g-opts">` + [0, 1, 2, 3, 4].map(i => i % 2 === 0
-        ? opt(i, o[i], `<small>${esc(s.f.means[i / 2])}${ytag(i)}</small>`)
-        : opt(i, o[i], `<small>in between${ytag(i)}</small>`, 'mid')).join('') + `</div>`;
-      if (unsure) html += `<div class="g-y">Marked as not sure.</div>`;
-      hint = `Say “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” or “${o[4].toLowerCase()}”, or in between like “${o[1].toLowerCase()}”.`;
+        ? opt(i, o[i], `<small>${esc(means[i / 2])}${ytag(i)}</small>`)
+        : opt(i, o[i], `<small>${T('in between', 'entre os dois')}${ytag(i)}</small>`, 'mid')).join('') + `</div>`;
+      if (unsure) html += `<div class="g-y">${T('Marked as not sure.', 'Marcado como não sei.')}</div>`;
+      hint = T(`Say “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” or “${o[4].toLowerCase()}”, or in between like “${o[1].toLowerCase()}”.`,
+        `Diga “${o[0].toLowerCase()}”, “${o[2].toLowerCase()}” ou “${o[4].toLowerCase()}”, ou algo entre, como “${o[1].toLowerCase()}”.`);
       break;
     }
     case 'hours': {
       if (G.pending === null) G.pending = v ?? lastSleep();
       html += `<div class="g-hours"><button data-h="-0.5" aria-label="Less">−</button><div class="g-hval">${G.pending}h</div><button data-h="0.5" aria-label="More">+</button></div>
-        <button class="g-opt g-confirm ${v === G.pending ? 'on' : ''} ${pop ? 'picked' : ''}" data-ok="1">${v === G.pending ? 'Saved' : 'That’s right'}</button>`;
-      hint = 'Say a number, like “seven and a half”.';
+        <button class="g-opt g-confirm ${v === G.pending ? 'on' : ''} ${pop ? 'picked' : ''}" data-ok="1">${v === G.pending ? T('Saved', 'Salvo') : T('That’s right', 'Isso mesmo')}</button>`;
+      hint = T('Say a number, like “seven and a half”.', 'Diga um número, como “sete e meia”.');
       break;
     }
     case 'habits':
     case 'multi': {
       if (G.pending === null) G.pending = s.type === 'habits' ? habitQs().filter(q => e[q.id] === 1).map(q => q.tile) : [...(v || [])];
-      html += `<div class="chips wrap g-chips">` + labelsFor(s).map(t =>
-        `<button class="chip ${G.pending.includes(t) ? 'on' : ''}" data-t="${esc(t)}" style="--i:${n++}">${esc(t)}</button>`).join('') + `</div>
-        <button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? 'Saved' : G.pending.length ? 'Done' : s.type === 'habits' ? 'None of these' : 'Nothing in particular'}</button>`;
-      hint = s.type === 'habits' ? 'Say the ones you did, like “moved and went outside”, or “none”.' : 'Say any that fit, like “lonely and bored”, or “nothing”.';
+      html += `<div class="chips wrap g-chips">` + labelsFor(s).map((t, i) =>
+        `<button class="chip ${G.pending.includes(t) ? 'on' : ''}" data-t="${esc(t)}" style="--i:${n++}">${esc(D[i])}</button>`).join('') + `</div>
+        <button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? T('Saved', 'Salvo') : G.pending.length ? T('Done', 'Pronto') : s.type === 'habits' ? T('None of these', 'Nenhum') : T('Nothing in particular', 'Nada específico')}</button>`;
+      hint = s.type === 'habits' ? T('Say the ones you did, like “moved and went outside”, or “none”.', 'Diga o que você fez, como “me mexi e saí”, ou “nada”.')
+        : T('Say any that fit, like “lonely and bored”, or “nothing”.', 'Diga o que se encaixa, como “solidão e tédio”, ou “nada”.');
       break;
     }
     case 'note': {
-      html += `<textarea class="g-note" placeholder="Optional">${esc(v || '')}</textarea><button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? 'Saved' : 'Save note'}</button>`;
-      hint = 'Say what happened, or “skip”.';
+      html += `<textarea class="g-note" placeholder="${T('Optional', 'Opcional')}">${esc(v || '')}</textarea><button class="g-opt g-confirm ${pop ? 'on picked' : ''}" data-ok="1">${pop ? T('Saved', 'Salvo') : T('Save note', 'Salvar nota')}</button>`;
+      hint = T('Say what happened, or “skip”.', 'Diga o que aconteceu, ou “pular”.');
       break;
     }
     default: {
-      const o = labelsFor(s);
+      const o = D;
       const row = s.type === 'yesno' || s.type === 'three';
       html += `<div class="${row ? 'g-row' : 'g-opts'}">` + o.map((l, i) => opt(i, l, ytag(i))).join('') + `</div>`;
-      hint = s.type === 'yesno' ? 'Say “yes” or “no”.' : s.type === 'minutes' ? 'Say “none”, “twenty minutes”, “two hours”…'
-        : `Say ${o.map(l => `“${l.toLowerCase()}”`).join(', ')}.`;
+      hint = s.type === 'yesno' ? T('Say “yes” or “no”.', 'Diga “sim” ou “não”.') : `${T('Say', 'Diga')} ${o.map(l => `“${l.toLowerCase()}”`).join(', ')}.`;
     }
   }
-  if (G.voice) html += `<div class="g-hint">${esc(hint)}<br><span>You can also say “skip”, “back”, “not sure”, “same as yesterday” or “stop”.</span></div>`;
+  if (G.voice) html += `<div class="g-hint">${esc(hint)}<br><span>${T('You can also say “skip”, “back”, “not sure”, “same as yesterday” or “stop”.', 'Você também pode dizer “pular”, “voltar”, “não sei”, “igual a ontem” ou “parar”.')}</span></div>`;
   body.innerHTML = html;
   if ($('gTipOk')) $('gTipOk').onclick = () => { save(TIP_KEY, true); G.showTip = false; $('gTip').remove(); };
 
@@ -334,21 +409,28 @@ function finish() {
   const e = entry();
   const items = G.answered.map((id, i) => {
     if (id === 'habits') {
-      const did = habitQs().filter(q => e[q.id] === 1).map(q => q.tile.toLowerCase());
-      return `<li style="--i:${i}"><b>What happened today:</b> ${esc(did.join(', ') || 'none of these')}</li>`;
+      const did = habitQs().filter(q => e[q.id] === 1).map(q => (isPt() ? PT_HAB[q.tile] || q.tile : q.tile).toLowerCase());
+      return `<li style="--i:${i}"><b>${T('What happened today', 'O que aconteceu hoje')}:</b> ${esc(did.join(', ') || T('none of these', 'nada disso'))}</li>`;
     }
-    const f = field(id); const val = isUnsure(e, id) ? 'not sure' : e[id] === undefined ? '—' : display(f, e[id]);
-    return `<li style="--i:${i}"><b>${esc(f.label)}:</b> ${esc(val)}</li>`;
+    const f = field(id), st = G.steps.find(x => x.f.id === id);
+    let label = f.label, val = isUnsure(e, id) ? T('not sure', 'não sei') : e[id] === undefined ? '—' : display(f, e[id]);
+    if (isPt() && st) {
+      label = st.f.beh ? `${st.f.beh.name}: ${subOf(st).replace('?', '').toLowerCase()}` : titleOf(st).replace('?', '');
+      const D = dispLabels(st), v = e[id];
+      if (!isUnsure(e, id) && v !== undefined) val = st.type === 'hours' ? `${v}h` : st.type === 'note' ? `“${v}”` : st.type === 'multi' ? v.map(x => PT_TRIG[x] || x).join(', ') : D[v];
+    }
+    return `<li style="--i:${i}"><b>${esc(label)}:</b> ${esc(val)}</li>`;
   }).join('');
   const gaps = counted().filter(q => e[q.id] === undefined && !isUnsure(e, q.id)).length;
-  $('gCount').textContent = 'Done'; $('gBar').style.width = (completion(current) * 100) + '%';
+  $('gCount').textContent = T('Done', 'Pronto'); $('gBar').style.width = (completion(current) * 100) + '%';
   $('gBody').innerHTML = `<div class="g-done-ck" aria-hidden="true"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="26"/><path d="M17 29l7.5 7.5L40 21"/></svg></div>
-    <div class="g-title">${gaps ? 'Saved' : 'All done'}</div>
-    <div class="g-sub">${G.answered.length ? 'Here’s what you answered:' : 'Nothing was changed.'}</div>
+    <div class="g-title">${gaps ? T('Saved', 'Salvo') : T('All done', 'Tudo pronto')}</div>
+    <div class="g-sub">${G.answered.length ? T('Here’s what you answered:', 'Suas respostas:') : T('Nothing was changed.', 'Nada foi alterado.')}</div>
     ${items ? `<ul class="g-sum">${items}</ul>` : ''}
-    ${gaps ? `<div class="g-y">${gaps} question${gaps > 1 ? 's' : ''} still open. You can answer ${gaps > 1 ? 'them' : 'it'} on the check-in page.</div>` : ''}
-    <button class="g-opt g-confirm on" id="gDone">Done</button>
-    ${G.answered.length ? '<button class="g-opt g-confirm" id="gUndoAll">Undo all of these</button>' : ''}`;
+    ${gaps ? `<div class="g-y">${T(`${gaps} question${gaps > 1 ? 's' : ''} still open. You can answer ${gaps > 1 ? 'them' : 'it'} on the check-in page.`,
+      `${gaps} ${gaps > 1 ? 'perguntas ainda abertas' : 'pergunta ainda aberta'}. Você pode responder na página de check-in.`)}</div>` : ''}
+    <button class="g-opt g-confirm on" id="gDone">${T('Done', 'Pronto')}</button>
+    ${G.answered.length ? `<button class="g-opt g-confirm" id="gUndoAll">${T('Undo all of these', 'Desfazer tudo')}</button>` : ''}`;
   $('gNav').hidden = true; $('gAlt').hidden = true;
   setMic();
   $('gDone').onclick = closeGuide;
