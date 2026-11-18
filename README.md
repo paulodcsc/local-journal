@@ -2,7 +2,7 @@
 
 A tap-only daily journal for your mental health: about 30 seconds a day, with no typing, accounts, or cloud.
 
-**What it tracks:** hours slept, how rested you feel, mood, stress, anxiety, irritability, insecurity, energy, Instagram/social media time, eating, water, exercise, daylight, real conversations, late caffeine, alcohol, medication (off by default), and an optional one-line note.
+**What it tracks:** hours slept, how rested you feel, mood, stress, anxiety, irritability, insecurity, energy, productivity (overall, not just work), Instagram/social media time, eating, water, exercise, daylight, real conversations, late caffeine, alcohol, medication (off by default), and an optional one-line note.
 
 - **Check-in tab:** questions are grouped into **Sleep · Feelings · Behaviours · Your day**.
   - Each section shows its progress and folds into a one-line summary once it's answered, so the page gets shorter as you go.

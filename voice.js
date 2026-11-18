@@ -32,7 +32,9 @@
     ['not bad', 'ok'], ['so so', 'ok'], ['very bad', 'awful'], ['really bad', 'awful'], ['a lot', 'LOT'], ['lots', 'LOT'],
     ['too much', 'LOT'], ['a bit', 'little'], ['a little', 'little'], ['kind of', 'little'], ['sort of', 'little'],
     ['not at all', 'none'], ['not really', 'little'], ['social media', 'SOCIAL'], ['tik tok', 'tiktok'],
-    ['self conscious', 'selfconscious'], ['went out', 'outside'], ['got outside', 'outside'], ['worked out', 'workout'], ['work out', 'workout'],
+    ['self conscious', 'selfconscious'], ['got a lot done', 'productive great'], ['got LOT done', 'productive great'],
+    ['got things done', 'productive good'], ['got some things done', 'productive ok'], ['got nothing done', 'productive bad'],
+    ['unproductive', 'productive bad'], ['not productive', 'productive bad'], ['went out', 'outside'], ['got outside', 'outside'], ['worked out', 'workout'], ['work out', 'workout'],
     ['did not', 'not'], ["didn't", 'not'], ['did nt', 'not'], ["haven't", 'not'],
     ["don't", 'not'], ['do not', 'not'], ["wasn't", 'not'], ["isn't", 'not'], ["i'm", 'im'],
     // uncertainty (after the "don't" → "not" step)
@@ -49,6 +51,7 @@
     irritable: ['irritable', 'irritability', 'irritated', 'annoyed', 'cranky', 'grumpy', 'angry'],
     insecure: ['insecure', 'insecurity', 'insecurities', 'selfconscious'],
     energy: ['energy', 'energetic'],
+    productive: ['productive', 'productivity'],
     instagram: ['instagram', 'insta', 'SOCIAL', 'tiktok', 'scrolling', 'scrolled', 'phone'],
     ate: ['ate', 'eat', 'eaten', 'eating', 'food', 'meals', 'meal'],
     water: ['water', 'hydrated', 'hydration'],
@@ -70,8 +73,8 @@
     MEDHIGH: 3, pretty: 3, quite: 3, fairly: 3,
     high: 4, very: 4, really: 4, so: 4, super: 4, LOT: 4, VHIGH: 4, max: 4, maximum: 4, insane: 4, crazy: 4 };
   // "Quality" scales (mood, rested, energy): 0 bad · 1 not great · 2 ok · 3 pretty good · 4 good
-  const QUALITY = { awful: 0, terrible: 0, horrible: 0, shit: 0, worst: 0, exhausted: 0, dead: 0, bad: 0, drained: 0, none: 0,
-    poor: 1, low: 1, tired: 1, meh: 1, sluggish: 1, down: 1, sad: 1, little: 1, LOWMED: 1,
+  const QUALITY = { awful: 0, terrible: 0, horrible: 0, shit: 0, worst: 0, exhausted: 0, dead: 0, bad: 0, drained: 0, none: 0, stuck: 0,
+    poor: 1, low: 1, slow: 1, tired: 1, meh: 1, sluggish: 1, down: 1, sad: 1, little: 1, LOWMED: 1,
     ok: 2, okay: 2, fine: 2, alright: 2, average: 2, normal: 2, decent: 2, medium: 2, some: 2, neutral: 2,
     PRETTYGOOD: 3, MEDHIGH: 3, pretty: 3, fairly: 3, quite: 3, nice: 3,
     good: 4, well: 4, high: 4, great: 4, amazing: 4, excellent: 4, fantastic: 4, awesome: 4, VHIGH: 4, perfect: 4, very: 4, really: 4, happy: 4 };
@@ -184,10 +187,10 @@
     return null;
   }
 
-  const KIND = { rested: 'quality', mood: 'quality', energy: 'quality', stress: 'amount', anxiety: 'amount', irritable: 'amount', insecure: 'amount' };
+  const KIND = { rested: 'quality', mood: 'quality', energy: 'quality', productive: 'quality', stress: 'amount', anxiety: 'amount', irritable: 'amount', insecure: 'amount' };
   // Words that themselves mean "present" when said without a value: "I was stressed", "felt anxious"
-  const IMPLIES_SOME = new Set(['stressed', 'anxious', 'nervous', 'worried', 'irritated', 'annoyed', 'cranky', 'grumpy', 'angry', 'irritable', 'insecure', 'selfconscious', 'rested', 'energetic']);
-  const IMPLIED_DEFAULT = { rested: 3, energy: 3 };
+  const IMPLIES_SOME = new Set(['stressed', 'anxious', 'nervous', 'worried', 'irritated', 'annoyed', 'cranky', 'grumpy', 'angry', 'irritable', 'insecure', 'selfconscious', 'rested', 'energetic', 'productive']);
+  const IMPLIED_DEFAULT = { rested: 3, energy: 3, productive: 3 };
 
   // Behaviours are named by the user ("Obsessive flirting"), so their keywords come from the name:
   // "flirting" → stem "flirt" matches flirted / flirty / flirt.

@@ -25,6 +25,14 @@ const cases = [
     { sleep: 7, rested: 2, stress: 2, anxiety: 0, instagram: 3, ate: 2, water: 0, moved: 1, outside: 0, alcohol: 0 }],
   ['slept 7 hours rested okay stress high anxiety low instagram 2 hours ate well water no exercise yes alcohol no',
     { sleep: 7, rested: 2, stress: 4, anxiety: 0, instagram: 4, ate: 2, water: 0, moved: 1, alcohol: 0 }],
+  // productivity (overall, not just work)
+  ['productivity high', { productive: 4 }],
+  ['pretty productive', { productive: 3 }],
+  ['I got a lot done today', { productive: 4 }],
+  ['got some things done, mood ok', { productive: 2, mood: 2 }],
+  ['unproductive day', { productive: 0 }],
+  ['felt productive', { productive: 3 }],
+  ['productivity same as yesterday', { productive: 1 }, { productive: 1 }],
   // habits
   ['instagram 2 hours', { instagram: 4 }],
   ['instagram half an hour', { instagram: 2 }],

@@ -141,8 +141,8 @@
     box-shadow: 0 0 0 4px var(--surface), 0 1px 4px rgba(0,0,0,.3); transition: left 120ms var(--ease), transform 120ms; }
   .sl-thumb[hidden] { display: none; }
   .sl.dragging .sl-thumb { transition: none; transform: scale(1.12); }
-  .sl-anchors { display: flex; justify-content: space-between; }
-  .sl-anchors button { flex: 1; font-size: var(--fs-sm); color: var(--muted); padding: 4px 0; text-align: center; min-height: 32px; }
+  .sl-anchors { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--sp-2); } /* middle label stays centred, ends can be long */
+  .sl-anchors button { font-size: var(--fs-sm); color: var(--muted); padding: 4px 0; text-align: center; min-height: 32px; white-space: nowrap; }
   .sl-anchors button:first-child { text-align: left; }
   .sl-anchors button:last-child { text-align: right; }
   .sl-anchors button.on { color: var(--ink); font-weight: 700; }
@@ -352,7 +352,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 8 · no zoom</p>
+    <p class="muted" style="text-align:center">Version 9 · productivity</p>
   </section>
 </main>
 
@@ -404,6 +404,10 @@ const QUESTIONS = [
     opts: AMOUNT5, means: ['Felt okay about myself', 'Some doubts or self-criticism', 'Felt not good enough most of the day'] },
   { id: 'energy',    label: 'Energy',                  type: 'scale', ui: 'slider', good: 'high',
     opts: ['Drained', 'Low', 'OK', 'Good', 'High'], means: ['Running on empty', 'Enough to get through', 'Got things done easily'] },
+  // Overall productivity, not just work: chores, plans, things for yourself. Added later, so older days don't need it.
+  { id: 'productive', label: 'Productivity',            type: 'scale', ui: 'slider', good: 'high', since: '2026-11-18',
+    opts: ['Stuck', 'Slow', 'Some done', 'Productive', 'Very productive'],
+    means: ['Couldn’t get going on anything', 'Got some things done', 'Did what I wanted, for myself too'] },
   { id: 'instagram', label: 'Instagram / social media',type: 'scale', opts: ['0', '<30m', '30m–1h', '1–2h', '2h+'], good: 'low' },
   { id: 'ate',       label: 'Did you eat properly?',   type: 'scale', opts: ['Barely', 'Some meals', 'Yes'], good: 'high' },
   { id: 'water',     label: 'Enough water?',           type: 'scale', opts: ['No', 'A bit', 'Yes'], good: 'high' },
@@ -418,7 +422,7 @@ const QUESTIONS = [
 const Q = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
 // Short names for summaries, and the tile + icon used in "What happened today?"
 const SHORT = { sleep: 'sleep', rested: 'rested', mood: 'mood', stress: 'stress', anxiety: 'anxiety', irritable: 'irritability',
-  insecure: 'insecurity', energy: 'energy', instagram: 'social media', ate: 'food', water: 'water', moved: 'moved', outside: 'outside',
+  insecure: 'insecurity', energy: 'energy', productive: 'productivity', instagram: 'social media', ate: 'food', water: 'water', moved: 'moved', outside: 'outside',
   social: 'real talk', caffeine: 'late caffeine', alcohol: 'alcohol', meds: 'meds', note: 'note' };
 const TILES = { moved: ['Moved / exercised', 'walk'], outside: ['Went outside', 'tree'], social: ['Real talk', 'chat'],
   caffeine: ['Caffeine after 2pm', 'cup'], alcohol: ['Alcohol', 'glass'], meds: ['Took meds', 'pill'] };
@@ -427,7 +431,7 @@ for (const q of QUESTIONS) { q.short = SHORT[q.id] || q.label.toLowerCase(); if 
 // The check-in page is grouped into sections that fold away once answered.
 const SECTIONS = [
   { id: 'sleep', title: 'Sleep', icon: 'moon', ids: ['sleep', 'rested'] },
-  { id: 'feel', title: 'Feelings', icon: 'heart', ids: ['mood', 'stress', 'anxiety', 'irritable', 'insecure', 'energy'] },
+  { id: 'feel', title: 'Feelings', icon: 'heart', ids: ['mood', 'stress', 'anxiety', 'irritable', 'insecure', 'energy', 'productive'] },
   { id: 'beh', title: 'Behaviours', icon: 'loop', behaviors: true },
   { id: 'day', title: 'Your day', icon: 'sun', ids: ['instagram', 'ate', 'water', 'habits', 'note'] },
 ];
@@ -536,8 +540,9 @@ function setValue(id, v) {
   if (Object.keys(e).length) entries[current] = e; else delete entries[current];
   save(KEY, entries);
 }
+const askedOn = (f, day) => !f.since || day >= f.since;
 function completion(day) {
-  const e = entry(day), qs = counted();
+  const e = entry(day), qs = counted().filter(q => askedOn(q, day));
   const done = qs.filter(q => e[q.id] !== undefined || isUnsure(e, q.id)).length;
   return qs.length ? done / qs.length : 0;
 }
@@ -585,7 +590,7 @@ function layout() {
     const items = s.behaviors ? behaviors.map(b => ({ kind: 'beh', card: b.id, b, fields: behaviorFields(b) }))
       : s.ids.flatMap(id => id === 'habits' ? (habitQs().length ? [{ kind: 'habits', card: 'habits', fields: habitQs() }] : [])
         : vis.has(id) ? [{ kind: 'q', card: id, q: Q[id], fields: [Q[id]] }] : []);
-    return { ...s, items, fields: items.flatMap(it => it.fields).filter(f => !f.optional) };
+    return { ...s, items, fields: items.flatMap(it => it.fields).filter(f => !f.optional && askedOn(f, current)) };
   }).filter(s => s.items.length);
 }
 function summary(s, e) {
@@ -1093,7 +1098,7 @@ function renderTrends() {
 
   // Patterns: compare how you feel on days with vs without a habit
   const all = Object.values(entries);
-  const feelings = ['mood', 'stress', 'anxiety', 'irritable', 'insecure', 'rested', 'energy'].filter(id => !hidden.includes(id));
+  const feelings = ['mood', 'stress', 'anxiety', 'irritable', 'insecure', 'rested', 'energy', 'productive'].filter(id => !hidden.includes(id));
   const conditions = [
     { name: 'slept 7h or more',        test: e => e.sleep !== undefined ? e.sleep >= 7 : null, ids: ['sleep'] },
     { name: 'used social media 1h+',   test: e => e.instagram !== undefined ? e.instagram >= 3 : null, ids: ['instagram'] },
@@ -1113,6 +1118,7 @@ function renderTrends() {
     { name: 'felt insecure',        test: e => e.insecure !== undefined ? e.insecure >= 3 : null, ids: ['insecure'] },
     { name: 'were in a low mood',   test: e => e.mood !== undefined ? e.mood <= 1 : null, ids: ['mood'] },
     { name: 'felt tired',           test: e => e.rested !== undefined ? e.rested <= 1 : null, ids: ['rested'] },
+    { name: 'felt stuck',           test: e => e.productive !== undefined ? e.productive <= 1 : null, ids: ['productive'] },
   ].filter(c => c.ids.every(id => !hidden.includes(id)));
 
   const found = [];

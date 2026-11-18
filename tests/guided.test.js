@@ -4,6 +4,7 @@ const AMOUNT5 = ['Low', 'Mild', 'Medium', 'Quite high', 'High'];
 const MOOD = ['Bad', 'Not great', 'OK', 'Pretty good', 'Good'];
 const ENERGY = ['Drained', 'Low', 'OK', 'Good', 'High'];
 const URGE = ['None', 'Mild', 'Moderate', 'Strong', 'Overwhelming'];
+const PROD = ['Stuck', 'Slow', 'Some done', 'Productive', 'Very productive'];
 const TRIG = ['Bored', 'Lonely', 'Anxious', 'Felt rejected', 'Scrolling', 'Tired', 'Drinking', 'After a fight', 'Other'];
 const S = { type: 'slider', kind: 'amount', labels: AMOUNT5 }, M = { type: 'slider', kind: 'quality', labels: MOOD };
 const cases = [
@@ -16,6 +17,9 @@ const cases = [
   ['good', M, { value: 4 }], ['pretty good', M, { value: 3 }], ['not great', M, { value: 1 }], ['not good', M, { value: 1 }],
   ['okay', M, { value: 2 }], ['ok', M, { value: 2 }], ['bad', M, { value: 0 }], ['meh', M, { value: 1 }], ['great', M, { value: 4 }],
   ['low', { type: 'slider', kind: 'quality', labels: ENERGY }, { value: 1 }], ['drained', { type: 'slider', kind: 'quality', labels: ENERGY }, { value: 0 }],
+  ['very productive', { type: 'slider', kind: 'quality', labels: PROD }, { value: 4 }], ['some done', { type: 'slider', kind: 'quality', labels: PROD }, { value: 2 }],
+  ['stuck', { type: 'slider', kind: 'quality', labels: PROD }, { value: 0 }], ['slow', { type: 'slider', kind: 'quality', labels: PROD }, { value: 1 }],
+  ['productive', { type: 'slider', kind: 'quality', labels: PROD }, { value: 3 }], ['pretty good', { type: 'slider', kind: 'quality', labels: PROD }, { value: 3 }],
   ['strong', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['none', { type: 'slider', kind: 'urge', labels: URGE }, { value: 0 }],
   ['really strong', { type: 'slider', kind: 'urge', labels: URGE }, { value: 3 }], ['a little', { type: 'slider', kind: 'urge', labels: URGE }, { value: 1 }],
   ['seven and a half', { type: 'hours' }, { value: 7.5 }], ['6', { type: 'hours' }, { value: 6 }], ['about 8 hours', { type: 'hours' }, { value: 8 }],
