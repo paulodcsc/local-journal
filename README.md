@@ -28,6 +28,7 @@ A tap-only daily journal for your mental health: about 30 seconds a day, with no
   - It only asks what you haven't answered yet, and skips "acted on it" when the urge was none.
   - You can also say *"skip"*, *"back"*, *"not sure"*, *"same as yesterday"*, *"repeat"* or *"stop"*.
   - Every answer can also be tapped. Where voice isn't available (some iPhone home-screen apps), it works as a tap-through check-in.
+  - Questions slide in one by one. Sound bars show when it's listening, and what you say appears live in a bubble. The bubble turns lime when understood, or shakes when not. An **Undo** button appears for a moment after each answer, and tapping the mic while it reads skips straight to answering.
   - At the end you see a summary and can undo it all. *"Say everything at once instead"* opens the free-form mode, which understands hedges, comparisons and corrections.
 - **Trends tab:** 14-day averages, plus *patterns* once you have about 1–2 weeks of data (e.g. "On days you used social media 1h+, your mood was usually poor vs good otherwise").
 - **Settings tab:** switch off questions you don't care about, export to CSV/JSON, and import a backup.

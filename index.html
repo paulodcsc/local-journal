@@ -362,6 +362,62 @@
   .g-nav button:disabled { opacity: .4; }
   .g-alt { display: block; margin: 6px auto 0; font-size: 13px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; padding: 8px; }
   .g-alt[hidden] { display: none; }
+  #gCount b { color: var(--ink); font-weight: 700; }
+
+  /* Guided voice: motion */
+  .g-body.enter-fwd { animation: g-in-fwd 300ms var(--ease) both; }
+  .g-body.enter-back { animation: g-in-back 300ms var(--ease) both; }
+  .g-body.leave-fwd { animation: g-out-fwd 150ms ease-in both; }
+  .g-body.leave-back { animation: g-out-back 150ms ease-in both; }
+  @keyframes g-in-fwd { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+  @keyframes g-in-back { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+  @keyframes g-out-fwd { to { opacity: 0; transform: translateX(-36px); } }
+  @keyframes g-out-back { to { opacity: 0; transform: translateX(36px); } }
+  .g-body.fresh .g-opts > *, .g-body.fresh .g-row > *, .g-body.fresh .g-chips > * {
+    animation: g-rise 380ms var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms + 90ms); }
+  @keyframes g-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .g-opt .g-ck { width: 22px; height: 22px; margin-left: 6px; stroke-width: 2.4; }
+  .g-opt.picked { animation: g-pop 460ms var(--ease); }
+  @keyframes g-pop { 0% { transform: scale(.97); } 45% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  .nudge > * { animation: g-nudge 560ms var(--ease); }
+  @keyframes g-nudge { 25% { transform: translateX(4px); border-color: var(--accent); } 55% { transform: translateX(-3px); } 100% { transform: none; } }
+
+  /* what the app hears */
+  .g-heard { display: flex; justify-content: center; align-items: center; min-height: 40px; margin-top: 4px; }
+  .bubble { max-width: 100%; padding: 8px 16px; border-radius: 20px; font-size: 16px; background: var(--glass-strong); border: 1px solid var(--glass-line);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; animation: g-bubble 220ms var(--ease) both; }
+  .bubble.live { color: var(--ink-2); }
+  .bubble.ok { background: var(--lime); color: var(--lime-ink); border-color: transparent; font-weight: 600; }
+  .bubble.bad { animation: g-shake 420ms ease-in-out; }
+  @keyframes g-bubble { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes g-shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+  .eq { display: inline-flex; align-items: center; gap: 5px; height: 26px; }
+  .eq i { width: 5px; height: 100%; border-radius: 3px; background: var(--accent); transform: scaleY(.3); animation: eq 900ms ease-in-out infinite; }
+  .eq i:nth-child(2) { animation-delay: -.65s; } .eq i:nth-child(3) { animation-delay: -.35s; }
+  .eq i:nth-child(4) { animation-delay: -.15s; } .eq i:nth-child(5) { animation-delay: -.5s; }
+  .eq.slow i { animation-duration: 1.7s; opacity: .45; }
+  @keyframes eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+  .g-micbtn { transition: background var(--dur), transform var(--dur) var(--ease); }
+  .g-micbtn:active { transform: scale(.94); }
+  .g-micbtn.speaking { animation: breathe 1.8s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.06); } }
+  .g-status { display: flex; justify-content: center; align-items: center; gap: var(--sp-2); min-height: 30px; margin-top: 6px; }
+  .g-status .g-mictext { margin: 0; }
+  .g-undo { padding: 5px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 700; animation: g-bubble 200ms var(--ease) both; }
+  .g-undo[hidden] { display: none; }
+  .g-tip { display: flex; align-items: center; gap: var(--sp-3); padding: 12px 14px; margin-bottom: var(--sp-4); border-radius: 18px;
+    background: var(--glass-strong); border: 1px solid var(--glass-line); font-size: var(--fs-sm); color: var(--ink-2); animation: g-bubble 300ms var(--ease) both; }
+  .g-tip b { color: var(--ink); }
+  .g-tip button { flex: none; padding: 8px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 13px; }
+  /* finish */
+  .g-done-ck { margin: var(--sp-4) 0 var(--sp-3); }
+  .g-done-ck svg { width: 72px; height: 72px; overflow: visible; }
+  .g-done-ck circle { fill: var(--lime); transform-origin: center; animation: g-pop 500ms var(--ease) both; }
+  .g-done-ck path { fill: none; stroke: var(--lime-ink); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 40; stroke-dashoffset: 40; animation: g-draw 420ms 240ms var(--ease) forwards; }
+  @keyframes g-draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .g-done-ck path { stroke-dashoffset: 0; } }
+  .g-sum li { animation: g-rise 320ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms + 300ms); }
 
   .toast {
     z-index: 30; position: fixed; left: 50%; bottom: calc(146px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
@@ -437,7 +493,7 @@
     <button class="btn" id="importJson">Import backup</button>
     <input type="file" id="file" accept="application/json,.json" hidden>
     <button class="btn danger" id="wipe">Delete all data</button>
-    <p class="muted" style="text-align:center">Version 16 · polish</p>
+    <p class="muted" style="text-align:center">Version 17 · voice motion</p>
   </section>
 </main>
 
@@ -458,7 +514,7 @@
       <button class="g-micbtn" id="gMic" aria-label="Answer by voice">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
       </button>
-      <div class="g-mictext" id="gMicText"></div>
+      <div class="g-status"><span class="g-mictext" id="gMicText"></span><button class="g-undo" id="gUndo" hidden>Undo</button></div>
       <div class="g-heard" id="gHeard"></div>
     </div>
     <div class="g-nav" id="gNav"><button id="gBack">‹ Back</button><button id="gUnsure">Not sure</button><button id="gSkip">Skip ›</button></div>
