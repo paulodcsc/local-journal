@@ -1,49 +1,84 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="bg" cx="34%" cy="66%" r="85%">
-      <stop offset="0" stop-color="#7a6352"/>
-      <stop offset="1" stop-color="#3b2e25"/>
-    </radialGradient>
-    <clipPath id="body"><ellipse cx="0" cy="0" rx="138" ry="98"/></clipPath>
-    <clipPath id="wingA"><ellipse cx="0" cy="0" rx="54" ry="94"/></clipPath>
-    <clipPath id="wingB"><ellipse cx="0" cy="0" rx="56" ry="98"/></clipPath>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="46"/></filter>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+    <linearGradient id="glass" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".62"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="glassEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity=".2"/>
+    </linearGradient>
+    <linearGradient id="bodyFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6f45a"/>
+      <stop offset="1" stop-color="#cfe42e"/>
+    </linearGradient>
+    <linearGradient id="wingFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#f3ece4" stop-opacity=".7"/>
+    </linearGradient>
+    <!-- bean-shaped body: rounded head up front, softer tail -->
+    <path id="bean" d="M-122 12 C-128 -44 -74 -84 -8 -82 C44 -80 66 -102 108 -96 C150 -90 168 -46 154 -2 C140 48 86 86 12 90 C-62 94 -116 64 -122 12 Z"/>
+    <clipPath id="beanClip"><use href="#bean"/></clipPath>
   </defs>
 
-  <!-- background: same mocha as the app -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g clip-path="url(#tile)">
+    <!-- warm sand base with blurred colour blobs, like the app background -->
+    <rect width="512" height="512" fill="#e6ddd3"/>
+    <g filter="url(#soft)">
+      <circle cx="110" cy="96" r="150" fill="#f8f3ec"/>
+      <circle cx="430" cy="150" r="130" fill="#d3bfab"/>
+      <circle cx="400" cy="440" r="170" fill="#c4ab95"/>
+      <circle cx="120" cy="420" r="120" fill="#e9dccd"/>
+      <circle cx="300" cy="300" r="90" fill="#eef6a8" opacity=".7"/>
+    </g>
+
+    <!-- frosted glass panel -->
+    <rect x="70" y="70" width="372" height="372" rx="104" fill="url(#glass)"/>
+    <rect x="71.5" y="71.5" width="369" height="369" rx="102.5" fill="none" stroke="url(#glassEdge)" stroke-width="3"/>
+  </g>
 
   <!-- soft shadow under the bee -->
-  <ellipse cx="270" cy="438" rx="128" ry="16" fill="#26210f" opacity=".22"/>
+  <ellipse cx="262" cy="402" rx="100" ry="14" fill="#6b5646" opacity=".28" filter="url(#shadow)"/>
 
-  <!-- back wing -->
-  <g transform="translate(318 168) rotate(16)">
-    <ellipse cx="0" cy="0" rx="54" ry="94" fill="#cdb9a5"/>
-    <g clip-path="url(#wingA)" fill="none" stroke="#a8917d" stroke-width="9" stroke-linecap="round">
-      <path d="M-60 -6 Q0 -36 60 -14"/>
-      <path d="M-14 -100 Q30 -10 6 100"/>
+  <g transform="translate(252 302) rotate(-10) scale(.9)">
+    <!-- back wing (see-through) -->
+    <g transform="translate(4 -70) rotate(16)">
+      <path d="M0 0 C-34 -36 -30 -150 34 -164 C96 -176 108 -96 66 -44 C44 -18 22 -4 0 0 Z" fill="#d8c5b1" opacity=".92" stroke="#c2ab95" stroke-width="3"/>
+      <path d="M6 -14 C20 -60 30 -108 34 -146" fill="none" stroke="#b39a83" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+      <path d="M22 -70 C40 -78 58 -80 76 -74" fill="none" stroke="#b39a83" stroke-width="5" stroke-linecap="round" opacity=".55"/>
     </g>
-  </g>
 
-  <!-- front wing -->
-  <g transform="translate(222 194) rotate(-40)">
-    <ellipse cx="0" cy="0" rx="56" ry="98" fill="#f6f1ea"/>
-    <g clip-path="url(#wingB)" fill="none" stroke="#cdb9a5" stroke-width="9" stroke-linecap="round">
-      <path d="M-62 -10 Q0 -40 62 -18"/>
-      <path d="M-16 -104 Q30 -10 4 104"/>
-    </g>
-  </g>
+    <!-- curved stinger -->
+    <path d="M-110 22 C-136 26 -160 38 -186 58 C-158 60 -130 54 -106 44 Z" fill="#4a3a2f" stroke="#4a3a2f" stroke-width="8" stroke-linejoin="round"/>
 
-  <!-- body, tilted up to the right -->
-  <g transform="translate(286 322) rotate(-16)">
-    <!-- stinger -->
-    <path d="M-128 -22 L-204 6 L-126 34 Z" fill="#26210f" stroke="#26210f" stroke-width="10" stroke-linejoin="round"/>
-    <ellipse cx="0" cy="0" rx="138" ry="98" fill="#dcef3c"/>
-    <!-- stripes -->
-    <g clip-path="url(#body)" fill="#26210f">
-      <rect x="-78" y="-120" width="36" height="240" transform="rotate(8)"/>
-      <rect x="-6" y="-120" width="36" height="240" transform="rotate(8)"/>
+    <!-- body -->
+    <use href="#bean" fill="url(#bodyFill)"/>
+    <!-- curved stripes -->
+    <g clip-path="url(#beanClip)" fill="#4a3a2f">
+      <path d="M-66 -120 C-40 -30 -44 40 -76 130 L-34 130 C-4 40 0 -30 -24 -120 Z"/>
+      <path d="M8 -130 C36 -40 32 40 2 130 L44 130 C74 40 78 -40 50 -130 Z"/>
     </g>
-    <!-- eye -->
-    <circle cx="80" cy="-24" r="17" fill="#26210f"/>
+    <!-- soft highlight on top of the body -->
+    <path d="M-80 -58 C-40 -76 10 -74 50 -78" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity=".35"/>
+
+    <!-- antenna -->
+    <path d="M118 -92 C122 -128 146 -146 170 -138" fill="none" stroke="#4a3a2f" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="172" cy="-138" r="10" fill="#4a3a2f"/>
+
+    <!-- face -->
+    <circle cx="104" cy="-34" r="15" fill="#4a3a2f"/>
+    <circle cx="109" cy="-39" r="4.5" fill="#ffffff"/>
+    <circle cx="132" cy="2" r="12" fill="#e9a77c" opacity=".55"/>
+    <path d="M100 6 C108 18 122 20 132 12" fill="none" stroke="#4a3a2f" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- front wing (see-through, overlaps the body a little) -->
+    <g transform="translate(-26 -66) rotate(-34)">
+      <path d="M0 0 C-36 -34 -34 -152 30 -168 C94 -182 110 -100 68 -46 C46 -18 22 -4 0 0 Z" fill="url(#wingFill)" opacity=".9" stroke="#cdb9a5" stroke-width="3"/>
+      <path d="M6 -14 C20 -62 28 -110 32 -150" fill="none" stroke="#cdb9a5" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+      <path d="M20 -74 C38 -82 58 -84 78 -78" fill="none" stroke="#cdb9a5" stroke-width="5" stroke-linecap="round" opacity=".6"/>
+    </g>
   </g>
 </svg>
